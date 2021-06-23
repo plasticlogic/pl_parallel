@@ -16,6 +16,7 @@
 #include <linux/kobject.h>
 #include <linux/device.h>
 #include <linux/platform_device.h>
+#include <linux/slab.h>
 #include <linux/errno.h>
 #include <linux/err.h>
 
@@ -25,29 +26,43 @@ static dev_t pl_parallel_dev_t = 0;
 static struct class *pl_parallel_class;
 static struct cdev *pl_parallel_cdev;
 
+static int MAX_DATA_SIZE = 1024; // turn to module param!!! 
+
 ////////////////////////////////////////////////////////////////////////////////
 // Cdev
 
 static int pl_parallel_open(struct inode *inode, struct file *file)
 {
-
+        return 0;
 }
 
 static int pl_parallel_release(struct inode *inode, struct file *file)
 {
-
+        return 0;
 }
 
 static ssize_t pl_parallel_read(struct file *file, char __user *data,
                                 size_t size, loff_t *offset)
 {
-
+        size = 0;
+        return -EPERM;
 }
 
 static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                                  size_t size, loff_t *offset)
 {
+        int copy_size, not_copied;
+        char* buffer;
 
+        if(size > MAX_DATA_SIZE)
+                copy_size = MAX_DATA_SIZE;
+        else
+                copy_size = size;
+
+        buffer = kzalloc(copy_size, GFP_KERNEL);
+        if(!buffer) {
+                
+        }
 }
 
 static struct file_operations pl_parallel_fops = {
