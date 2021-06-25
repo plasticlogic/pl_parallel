@@ -9,28 +9,37 @@
  *
  */
 
+#ifndef AM335X_CTRL_H
+#define AM335X_CTRL_H
+
+#include <linux/kernel.h>
+#include <linux/module.h>
+#include <linux/device.h>
+#include <linux/slab.h>
+#include <linux/sysfs.h>
+#include <linux/ioport.h>
+#include <linux/clk.h>
+#include <linux/string.h>
+
 #include <controller.h>
-
-struct am335x_ctrl_timings {
-        unsigned char w_setup;
-        unsigned char w_strobe;
-        unsigned char w_hold;
-        unsigned char r_setup;
-        unsigned char r_strobe;
-        unsigned char r_hold;
-        unsigned char ta;
-}
-
-struct am335x_ctrl_sig_pol {
-        unsigned int ale_pol : 1;
-        unsigned int rs_en_pol : 1;
-        unsigned int ws_dir_pol : 1;
-        unsigned int cs0_e0_pol : 1;
-        unsigned int cs1_e1_pol : 1;
-}
 
 struct am335x_ctrl {
         struct controller ctrl;
-        struct am335x_ctrl_timings timings;
-        struct am335x_ctrl_sig_pol sig_pol;
+        struct clk *hw_clk;
+        struct resource *hw_res;
 };
+#define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl.kobj)
+
+struct am335x_attribute {
+        struct attribute attr;
+        ssize_t (*show)(struct am335x_ctrl *ctrl, 
+                        struct am335_x_attribute *attr, char *buf);
+        ssize_t (*store)(struct am335x_ctrl *ctrl,
+                         struct am335x_attribute *attr,
+                         const char *buf, size_t count);
+};
+#define to_am335x_attr(x) container_of(x, struct am335x_attribute, attr)
+
+struct controller *am335x_ctrl_create(struct device *dev);
+
+#endif /* AM335X_CTRL_H */
