@@ -16,9 +16,13 @@
 #include <linux/kobject.h>
 #include <linux/device.h>
 #include <linux/platform_device.h>
+#include <linux/mod_devicetable.h>
 #include <linux/slab.h>
 #include <linux/errno.h>
 #include <linux/err.h>
+
+#include <ctrl/controller.h>
+#include <ctrl/am335x_ctrl.h>
 
 #define DEVICE_NAME     "parallel"
 
@@ -74,11 +78,63 @@ static struct file_operations pl_parallel_fops = {
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+// Devices
+
+static enum pl_parallel_type {
+        AM335X,
+};
+
+static const struct platform_device_id pl_parallel_devtype[] = {
+        { .name = "lcdc", .driver_data = AM335X },
+        { /* sentinal */}
+};
+MODULE_DEVICE_TABLE(platform, pl_parallel_devtype);
+
+static const struct of_device_id pl_parallel_dt_ids[] = {
+        {
+                .compatible = "ti,am33xx-tilcdc",
+                .data = &pl_parallel_devtype[AM335X]
+        },
+        { /* sentinal */}
+};
+MODULE_DEVICE_TABLE(of, pl_parallel_dt_ids);
+
+static struct controller *get_controller_by_dev_id(struct platform_device_id *id)
+{
+        struct controller *ctrl;
+
+        switch(id->driver_data) {
+        case AM335X:
+                ctrl = am335x_ctrl_create();
+                break;
+        default:
+                ctrl = ERR_PTR(-ENODEV);
+                break;
+        }
+        return ctrl;
+}
+
+////////////////////////////////////////////////////////////////////////////////
 // Driver
 
 static int pl_parallel_probe(struct platform_device *pdev)
 {
         int ret;
+        struct controller *ctrl;
+        struct platform_device_id *dev_id;
+
+        // find and create device
+        const struct of_device_id *of_id = 
+                of_match_device(pl_parallel_dt_ids, &pdev->dev);
+
+        if(!of_id) {
+                pr_err("%s: Cannot find any compatible hardware.", 
+                        THIS_MODULE->name);
+                ret = -ENODEV;
+                goto of_match_fail;
+        }
+
+        ctrl = get_controller_by_dev_id(of_id->data)
 
         // create cdev
         ret = alloc_chrdev_region(&pl_parallel_dev_t, 0, 1, DEVICE_NAME); // ???
@@ -109,8 +165,6 @@ static int pl_parallel_probe(struct platform_device *pdev)
                 goto create_class_fail;
         }
 
-        // create device
-
         return 0;
 
         // class_destroy(pl_parallel_class);
@@ -120,6 +174,7 @@ add_cdev_fail:
 alloc_cdev_fail:
         unregister_chrdev_region(pl_parallel_dev_t, 1);
 alloc_cdev_region_fail:
+of_match_fail:
         return ret;
 }
 
@@ -134,6 +189,7 @@ static const platform_driver pl_parallel_driver = {
         .driver = {
                 .name = DEVICE_NAME,
                 .owner = THIS_MODULE,
+                .of_match_table = pl_parallel_dt_ids,
         },
         .probe = pl_parallel_probe,
         .remove = pl_parallel_remove,
