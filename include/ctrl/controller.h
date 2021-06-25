@@ -11,10 +11,16 @@
 
 #include <linux/kernel.h>
 #include <linux/kobject.h>
+#include <linux/gpio/consumer.h>
+
+#define HRDY_GPIO_ID    "hrdy"
 
 struct controller {
         struct kobject kobj;
+        struct device *dev;
         int (*init)(struct controller *ctrl);
         ssize_t (*write)(struct controller *ctrl, const char *buf, size_t len);
         void (*destroy)(struct controller *ctrl);
+        struct gpio_desc *hrdy_gpio;
 };
+#define to_controller(x) container_of(x, struct controller, kobj)
