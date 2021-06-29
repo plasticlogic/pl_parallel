@@ -2,7 +2,7 @@
 /*
  * am335x_ctrl.h - controller implementations for am335x based systems
  *
- * Copyright (c) 2001-2003 PL Germany
+ * Copyright (c) 2021 PL Germany
  * 
  * Authors 
  *      Lars Görner <lars.goerner@plasticlogic.com>
@@ -23,10 +23,13 @@
 
 #include <controller.h>
 
+#define AM335X_TCON_CLK_IDENTIFIER      "l4_per_cm:clk:0004:0"
+
 struct am335x_ctrl {
         struct controller ctrl;
         struct clk *hw_clk;
         struct resource *hw_res;
+        void __iomem *reg_base_addr;
 };
 #define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl.kobj)
 
@@ -40,6 +43,6 @@ struct am335x_attribute {
 };
 #define to_am335x_attr(x) container_of(x, struct am335x_attribute, attr)
 
-struct controller *am335x_ctrl_create(struct device *dev);
+struct controller *am335x_ctrl_create(struct class *c);
 
 #endif /* AM335X_CTRL_H */
