@@ -18,6 +18,7 @@
 #include <linux/platform_device.h>
 #include <linux/mod_devicetable.h>
 #include <linux/slab.h>
+#include <linux/uaccess.h>
 #include <linux/errno.h>
 #include <linux/err.h>
 
@@ -29,11 +30,12 @@
 static dev_t pl_parallel_dev_t = 0;
 static struct class *pl_parallel_class;
 static struct cdev *pl_parallel_cdev;
-
-static int MAX_DATA_SIZE = 1024; // turn to module param!!! 
+static struct controller *ctrl;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Cdev
+
+static short *buffer = NULL;
 
 static int pl_parallel_open(struct inode *inode, struct file *file)
 {
@@ -48,7 +50,6 @@ static int pl_parallel_release(struct inode *inode, struct file *file)
 static ssize_t pl_parallel_read(struct file *file, char __user *data,
                                 size_t size, loff_t *offset)
 {
-        size = 0;
         return -EPERM;
 }
 
@@ -56,17 +57,30 @@ static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                                  size_t size, loff_t *offset)
 {
         int copy_size, not_copied;
-        char* buffer;
+        short* buffer;
+        int ret;
 
-        if(size > MAX_DATA_SIZE)
-                copy_size = MAX_DATA_SIZE;
-        else
-                copy_size = size;
-
-        buffer = kzalloc(copy_size, GFP_KERNEL);
+        buffer = kzalloc(size, GFP_KERNEL);
         if(!buffer) {
-                
+                dev_err(ctrl->dev, "Allocate buffer failed.");
+                ret = -ENOMEM;
+                goto alloc_buf_mem_fail;
         }
+
+        ret = copy_from_user(buffer, data, size);
+        if(ret) {
+                dev_err(ctrl->dev, "Copy data from user space failed.");
+                goto copy_user_data_fail;
+        }
+
+        ret = ctrl->write(ctrl, buffer[0], buffer[1], size - 1);
+        kfree(buffer);
+        return ret;
+
+copy_user_data_fail:
+        kfree(buffer);
+alloc_buf_mem_fail:
+        return ret;
 }
 
 static struct file_operations pl_parallel_fops = {
@@ -99,13 +113,15 @@ static const struct of_device_id pl_parallel_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, pl_parallel_dt_ids);
 
-static struct controller *get_controller_by_dev_id(struct platform_device_id *id)
+static struct controller *get_controller_by_dev_id(
+                                        struct platform_device_id *id, 
+                                        struct class *c)
 {
         struct controller *ctrl;
 
         switch(id->driver_data) {
         case AM335X:
-                ctrl = am335x_ctrl_create();
+                ctrl = am335x_ctrl_create(c);
                 break;
         default:
                 ctrl = ERR_PTR(-ENODEV);
@@ -120,7 +136,6 @@ static struct controller *get_controller_by_dev_id(struct platform_device_id *id
 static int pl_parallel_probe(struct platform_device *pdev)
 {
         int ret;
-        struct controller *ctrl;
         struct platform_device_id *dev_id;
 
         // find and create device
@@ -133,8 +148,6 @@ static int pl_parallel_probe(struct platform_device *pdev)
                 ret = -ENODEV;
                 goto of_match_fail;
         }
-
-        ctrl = get_controller_by_dev_id(of_id->data)
 
         // create cdev
         ret = alloc_chrdev_region(&pl_parallel_dev_t, 0, 1, DEVICE_NAME); // ???
@@ -165,9 +178,26 @@ static int pl_parallel_probe(struct platform_device *pdev)
                 goto create_class_fail;
         }
 
+        // create device
+        ctrl = get_controller_by_dev_id(of_id->data, pl_parallel_class);
+        if(IS_ERR(ctrl)) {
+                dev_err(&pdev->dev, "Create parallel device failed.");
+                ret = PTR_ERR(ctrl);
+                goto create_dev_fail;
+        }
+        ctrl->dev = &pdev->dev;
+
+        ret = ctrl->init(ctrl);
+        if(ret) {
+                dev_err(&pdev->dev, "Init parallel device failed.");
+        }
+
+
+
         return 0;
 
-        // class_destroy(pl_parallel_class);
+create_dev_fail:
+        class_destroy(pl_parallel_class);
 create_class_fail:
         cdev_del(pl_parallel_cdev);
 add_cdev_fail:
@@ -180,6 +210,7 @@ of_match_fail:
 
 static int pl_parallel_remove(struct platform_device *pdev)
 {
+        ctrl->destroy(ctrl);
         class_destroy(pl_parallel_class);
         cdev_del(pl_parallel_cdev);
         unregister_chrdev_region(pl_parallel_dev_t, 1);
