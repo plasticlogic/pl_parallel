@@ -59,12 +59,45 @@ static void am335x_release(struct kobject *kobj)
 
         ctrl = to_am335x_ctrl(kobj);
         gpiod_put(ctrl->ctrl.hrdy_gpio);
+        devm_iounmap(ctrl->ctrl.dev, ctrl->reg_base_addr);
+        devm_clk_put(ctrl->ctrl.dev, ctrl->hw_clk);
         kfree(ctrl->ctrl.dev, ctrl);
 }
 
 /* timings */
 
 // clk_freq
+static ssize_t clk_freq_show(struct am335x_ctrl *ctrl, 
+                             struct am335x_attribute *attr, char *buf)
+{
+        unsigned long clk_freq, clk_div, ret;
+        clk_freq = clk_get_rate(ctrl->hw_clk);
+        clk_div = am335x_lcdc_get_clkdiv(ctrl->reg_base_addr);
+        ret = clk_freq / clk_div;
+        return sprintf(buf, "%lu\n", ret);
+}
+
+static ssize_t clk_freq_store(struct am335x_ctrl *ctrl,
+                              struct am335x_attribute *attr,
+                              const char *buf, size_t count)
+{
+        unsigned long clk_freq, clk_div, new_freq;
+        int ret;
+
+        ret = sscanf(buf, "%lu", &new_freq);
+        if(ret)
+                return ret;
+        
+        clk_freq = am335x_lcdc_get_clkdiv(ctrl->reg_base_addr);
+        new_freq = new_freq * clk_div;
+        ret = clk_set_rate(ctrl->hw_clk);
+        if(ret)
+                return ret;
+
+        return count;
+}
+
+static struct am335x_attribute clk_freq_attribute = __ATTR_RW(clk_freq);
 
 // w_su
 static ssize_t w_su_show(struct am335x_ctrl *ctrl, struct am335x_attribute *attr,
@@ -381,6 +414,8 @@ static struct am335x_attribute ale_pol_attribute = __ATTR_RW(ale_pol);
 ////////////////////////////////////////////////////////////////////////////////
 // Controller functions
 
+static const unsigned int init_hw_clk_freq = 20000000;
+
 static const struct am335_ctrl_timings init_timings = {
         .w_setup = 1,
         .w_strobe = 1,
@@ -400,6 +435,7 @@ static const struct am335x_ctrl_sig_pol init_sig_pols = {
 };
 
 static struct attribute *am335x_default_attrs[] = {
+        &clk_freq_attribute.attr,
         &w_su_attribute.attr,
         &w_strobe_attribute.attr,
         &w_hold_attribute.attr,
@@ -423,17 +459,126 @@ static struct kobj_type am335x_ktype = {
 
 static int init(struct controller *ctrl)
 {
+        int ret;
+        struct am335x_ctrl *c = to_am335x_ctrl(&ctrl->kobj);
 
+        if(!ctrl->dev) {
+                dev_err(ctrl->dev, "dev not set!");
+                return -ENODEV;
+        }
+
+        // request CLK GCLK clock
+        ctrl->hw_clk = devm_clk_get(ctrl->dev, AM335X_TCON_CLK_IDENTIFIER);
+        ret = clk_prepare(c->hw_clk);
+        if(ret) {
+                dev_err(ctrl->dev, "Prepare HW clock failed.");
+                goto clk_prep_fail;
+        }
+
+        // set clock frequency
+        ret = clk_set_rate(c->hw_clk, init_hw_clk_freq);
+        if(ret) {
+                dev_err(ctrl->dev, "Set HW clock rate failed.");
+                goto clk_set_rate_fail;
+        }
+
+        // enable clock
+        ret = clk_enable(c->hw_clk);
+        if(ret) {
+            dev_err(ctrl->dev, "Enable HW clk failed.");
+            goto clk_en_fail;
+        }
+
+        // remapping LCDC resource
+        c->reg_base_addr = devm_ioremap_resource(ctrl->dev, c->hw_res);
+        if(IS_ERR(c->reg_base_addr)) {
+            dev_err(ctrl->dev, "Remap HW memory failed.");
+            ret = PTR_ERR(c->reg_base_addr);
+            goto remap_res_fail;
+        }
+
+        // get HRDY GPIO
+        ctrl->hrdy_gpio = gpiod_get(ctrl->dev, HRDY_GPIO_ID, GPIOD_IN);
+        if(IS_ERR(ctrl->hrdy_gpio)) {
+                dev_err(ctrl->dev, "Request HRDY GPIO failed.");
+                ret = PTR_ERR(ctrl->hrdy_gpio);
+                goto hrdy_gpio_fail;
+        }
+
+        // enable clocks        
+        am335x_lcdc_set_core_clk_en(c->reg_base_addr, 1);
+        am335x_lcdc_set_lidd_clk_en(c->reg_base_addr, 1);
+        am335x_lcdc_set_dma_clk_en(c->reg_base_addr, 1);
+
+        // set clock divisor
+        am335x_lcdc_set_clkdiv(c->hw_res, 2);
+#pragma GCC warning "clock divisor must be set properly!"
+
+        // set signal polarities
+        am335x_set_lidd_pols(c->hw_res, &init_sig_pols);
+        
+        // set lidd mode
+        am335x_set_lidd_mode(c->hw_res, SYNC_MPU80);
+#pragma GCC warning "LIDD mode maybe wrong"
+        
+        // set timings
+        am335x_set_lidd_timings(c->hw_res, LIDD_CS0, &init_timings);
+        am335x_set_lidd_timings(c->hw_res, LIDD_CS1, &init_timings);
+
+        // set lcddma config
+        am335x_set_lcddma_fifo_threshold(c->reg_base_addr, FIFO_TH_16);
+        am335x_set_lcddma_burst_size(c->reg_base_addr, BURST_SIZE_16);
+        am335x_set_lcddma_frame_mode(c->reg_base_addr, ONE_FRAME);
+
+        return 0;
+
+hrdy_gpio_fail:
+        devm_iounmap(ctrl->dev, c->reg_base_addr);
+remap_res_fail:
+        devm_clk_put(ctrl->dev, c->hw_clk);
+clk_en_fail:
+clk_set_rate_fail:
+clk_prep_fail:
+        return ret;
 }
 
-static ssize_t write(struct controller *ctrl, const char *buf, size_t len)
+static void write_addr(struct am335x_ctrl *ctrl, short addr)
 {
+        am335x_set_lidd_dma_en(ctrl->hw_res, 0);
+        am335x_set_lidd_addr(ctrl->hw_res, LIDD_CS0, addr);
+}
 
+static void write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
+{
+        am335x_set_lidd_dma_en(ctrl->hw_res, 0);
+        am335x_set_lcddma_fbx_base_addr(ctrl->hw_res, FB0, data);
+        am335x_set_lcddma_fbx_ceil_addr(ctrl->hw_res, FB0, data + len - 1);
+        am335x_set_lidd_dma_en(ctrl->hw_res, 1);
+}
+
+static ssize_t read(struct controller *ctrl, short addr, short *buf, size_t len)
+{
+        return -1;
+}
+
+static ssize_t write(struct controller *ctrl, short addr, 
+                     const short *buf, size_t len)
+{
+        struct am335x_ctrl *c = to_am335x_ctrl(&ctrl->kobj);
+        write_addr(c, addr);
+        if(len > 0) {
+                if(!buf)
+                        return -ENODATA;
+
+                write_data(c, buf, len);
+                return len;
+        }
+        return 0;
 }
 
 static void destroy(struct controller *ctrl)
 {
-
+        kobject_put(&ctrl->kobj);
 }
 
 struct controller *am335x_ctrl_create(struct class *c)
@@ -453,17 +598,18 @@ struct controller *am335x_ctrl_create(struct class *c)
         ctrl->ctrl.write = write;
         ctrl->ctrl.destroy = destroy;
 
-        // get HRDY GPIO
-        ctrl->ctrl.hrdy_gpio = gpiod_get(dev, HRDY_GPIO_ID, GPIOD_IN);
-        if(IS_ERR(ctrl->ctrl.hrdy_gpio)) {
-                pr_err("%s: Request HRDY GPIO failed.", THIS_MODULE->name);
-                ret = PTR_ERR(ctrl->ctrl.hrdy_gpio);
-                goto hrdy_gpio_fail;
-        }
-
         // add object to sysfs
+        ret = kobject_init_and_add(&ctrl->ctrl.kobj, &am335x_ktype, c->dev_kobj,
+                                   "%s", PAR_CTRL_NAME);
+        if(ret) 
+                goto kobject_add_fail;
 
+        kobject_uevent(&ctrl->ctrl.kobj, KOBJ_ADD);
 
+        return 0;
+
+kobject_add_fail:
+        kobject_put(&ctrl->ctrl.kobj);
 hrdy_gpio_fail:
         destroy(ctrl);
         return ERR_PTR(ret);
