@@ -9,6 +9,9 @@
  *
  */
 
+#ifndef CONTROLLER_H
+#define CONTROLLER_H
+
 #include <linux/kernel.h>
 #include <linux/kobject.h>
 #include <linux/gpio/consumer.h>
@@ -28,3 +31,5 @@ struct controller {
         struct gpio_desc *hrdy_gpio;
 };
 #define to_controller(x) container_of(x, struct controller, kobj)
+
+#endif /* CONTROLLER_H */
