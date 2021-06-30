@@ -29,10 +29,10 @@
 
 #define DEVICE_NAME     "parallel"
 
-static dev_t pl_parallel_dev_t = 0;
-static struct class *pl_parallel_class;
-static struct cdev *pl_parallel_cdev;
-static struct controller *ctrl;
+static int dev_major = 0;
+static struct class *pl_parallel_class = NULL;
+static struct cdev *pl_parallel_cdev = NULL;
+static struct controller *ctrl = NULL;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Cdev
@@ -90,6 +90,13 @@ static struct file_operations pl_parallel_fops = {
         .write = pl_parallel_write,
 };
 
+static int pl_parallel_cdev_uevent(struct device *dev, 
+                                   struct kobj_uevent_env *env)
+{
+        add_uevent_var(env, "DEVMODE=%#o", 0666);
+        return 0;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Devices
 
@@ -136,6 +143,7 @@ static struct controller *get_controller_by_dev_id(
 static int pl_parallel_probe(struct platform_device *pdev)
 {
         int ret;
+        dev_t dev_type;
         struct platform_device_id *dev_id;
         // find and create device
         const struct of_device_id *of_id = 
@@ -149,26 +157,23 @@ static int pl_parallel_probe(struct platform_device *pdev)
         }
         
         // create cdev
-        ret = alloc_chrdev_region(&pl_parallel_dev_t, 0, 1, DEVICE_NAME); // ???
+
+        pl_parallel_cdev = devm_kzalloc(&pdev->dev, sizeof(*pl_parallel_cdev), 
+                                        GFP_KERNEL);
+        if(!pl_parallel_cdev) {
+                dev_err(&pdev->dev, "Alloc cdev memory failed.\n");
+                ret = -ENOMEM;
+        }
+
+        ret = alloc_chrdev_region(&dev_type, 0, 1, DEVICE_NAME);
         if(ret) {
                 pr_err("%s: Alloc cdev region failed.\n", THIS_MODULE->name);
                 goto alloc_cdev_region_fail;
         }
 
-        pl_parallel_cdev = cdev_alloc();
-        if(!pl_parallel_cdev) {
-                ret = -ENOMEM;
-                pr_err("%s: Alloc cdev failed.\n", THIS_MODULE->name);
-                goto alloc_cdev_fail;
-        }
+        dev_major = MAJOR(dev_type);
 
-        cdev_init(pl_parallel_cdev, &pl_parallel_fops);
-        ret = cdev_add(pl_parallel_cdev, pl_parallel_dev_t, 1); // ???
-        if(ret) {
-                pr_err("%s: Add cdev failed.\n", THIS_MODULE->name);
-                goto add_cdev_fail;
-        }
-
+        dev_info(&pdev->dev, "Create class\n");
         // create class
         pl_parallel_class = class_create(THIS_MODULE, DEVICE_NAME);
         if(!pl_parallel_class) {
@@ -176,16 +181,28 @@ static int pl_parallel_probe(struct platform_device *pdev)
                 pr_err("%s: Create class failed.\n", THIS_MODULE->name);
                 goto create_class_fail;
         }
+        pl_parallel_class->dev_uevent = pl_parallel_cdev_uevent;
 
+        dev_info(&pdev->dev, "init cdev\n");
+        cdev_init(pl_parallel_cdev, &pl_parallel_fops);
+        pl_parallel_cdev->owner = THIS_MODULE;
+
+        dev_info(&pdev->dev, "add cdev\n");
+        ret = cdev_add(pl_parallel_cdev, MKDEV(dev_major, 0), 1);
+        if(ret) {
+                pr_err("%s: Add cdev failed.\n", THIS_MODULE->name);
+                goto add_cdev_fail;
+        }
+
+        dev_info(&pdev->dev, "Create cdev\n");
+        device_create(pl_parallel_class, NULL, 
+                      MKDEV(dev_major, 0), NULL, DEVICE_NAME);
+
+        dev_info(&pdev->dev, "Create device\n");
         // create device
         dev_id = (struct platform_device_id *)of_id->data;
 
         ctrl = get_controller_by_dev_id(dev_id, pl_parallel_class);
-        if(!ctrl) {
-                dev_err(&pdev->dev, "device is NULL.\n");
-                ret = -ENODEV;
-                goto create_dev_fail;
-        }
         if(IS_ERR(ctrl)) {
                 dev_err(&pdev->dev, "Create parallel device failed.\n");
                 ret = PTR_ERR(ctrl);
@@ -219,7 +236,7 @@ create_class_fail:
         cdev_del(pl_parallel_cdev);
 add_cdev_fail:
 alloc_cdev_fail:
-        unregister_chrdev_region(pl_parallel_dev_t, 1);
+        unregister_chrdev_region(MKDEV(dev_major, 0), 1);
 alloc_cdev_region_fail:
 of_match_fail:
         return ret;
@@ -228,9 +245,10 @@ of_match_fail:
 static int pl_parallel_remove(struct platform_device *pdev)
 {
         ctrl->destroy(ctrl);
+        device_destroy(pl_parallel_class, MKDEV(dev_major, 0));
+        class_unregister(pl_parallel_class);
         class_destroy(pl_parallel_class);
-        cdev_del(pl_parallel_cdev);
-        unregister_chrdev_region(pl_parallel_dev_t, 1);
+        unregister_chrdev_region(MKDEV(dev_major, 0), 1);
         return 0;
 }
 
