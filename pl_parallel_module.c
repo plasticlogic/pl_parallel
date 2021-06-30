@@ -16,8 +16,10 @@
 #include <linux/kobject.h>
 #include <linux/device.h>
 #include <linux/platform_device.h>
+#include <linux/of_device.h>
 #include <linux/mod_devicetable.h>
 #include <linux/slab.h>
+#include <linux/fs.h>
 #include <linux/uaccess.h>
 #include <linux/errno.h>
 #include <linux/err.h>
@@ -34,8 +36,6 @@ static struct controller *ctrl;
 
 ////////////////////////////////////////////////////////////////////////////////
 // Cdev
-
-static short *buffer = NULL;
 
 static int pl_parallel_open(struct inode *inode, struct file *file)
 {
@@ -56,7 +56,6 @@ static ssize_t pl_parallel_read(struct file *file, char __user *data,
 static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                                  size_t size, loff_t *offset)
 {
-        int copy_size, not_copied;
         short* buffer;
         int ret;
 
@@ -73,7 +72,7 @@ static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                 goto copy_user_data_fail;
         }
 
-        ret = ctrl->write(ctrl, buffer[0], buffer[1], size - 1);
+        ret = ctrl->write(ctrl, buffer[0], &buffer[1], size - 1);
         kfree(buffer);
         return ret;
 
@@ -94,7 +93,7 @@ static struct file_operations pl_parallel_fops = {
 ////////////////////////////////////////////////////////////////////////////////
 // Devices
 
-static enum pl_parallel_type {
+enum pl_parallel_type {
         AM335X,
 };
 
@@ -121,6 +120,7 @@ static struct controller *get_controller_by_dev_id(
 
         switch(id->driver_data) {
         case AM335X:
+                pr_info("%s: Create am335x ctrl device.\n", THIS_MODULE->name);
                 ctrl = am335x_ctrl_create(c);
                 break;
         default:
@@ -137,21 +137,20 @@ static int pl_parallel_probe(struct platform_device *pdev)
 {
         int ret;
         struct platform_device_id *dev_id;
-
         // find and create device
         const struct of_device_id *of_id = 
                 of_match_device(pl_parallel_dt_ids, &pdev->dev);
 
         if(!of_id) {
-                pr_err("%s: Cannot find any compatible hardware.", 
+                pr_err("%s: Cannot find any compatible hardware.\n", 
                         THIS_MODULE->name);
                 ret = -ENODEV;
                 goto of_match_fail;
         }
-
+        
         // create cdev
         ret = alloc_chrdev_region(&pl_parallel_dev_t, 0, 1, DEVICE_NAME); // ???
-        if(result) {
+        if(ret) {
                 pr_err("%s: Alloc cdev region failed.\n", THIS_MODULE->name);
                 goto alloc_cdev_region_fail;
         }
@@ -179,20 +178,28 @@ static int pl_parallel_probe(struct platform_device *pdev)
         }
 
         // create device
-        ctrl = get_controller_by_dev_id(of_id->data, pl_parallel_class);
+        dev_id = (struct platform_device_id *)of_id->data;
+
+        ctrl = get_controller_by_dev_id(dev_id, pl_parallel_class);
+        if(!ctrl) {
+                dev_err(&pdev->dev, "device is NULL.\n");
+                ret = -ENODEV;
+                goto create_dev_fail;
+        }
         if(IS_ERR(ctrl)) {
-                dev_err(&pdev->dev, "Create parallel device failed.");
+                dev_err(&pdev->dev, "Create parallel device failed.\n");
                 ret = PTR_ERR(ctrl);
                 goto create_dev_fail;
         }
         ctrl->dev = &pdev->dev;
 
+        dev_info(&pdev->dev, "Init device...\n");
         ret = ctrl->init(ctrl);
         if(ret) {
-                dev_err(&pdev->dev, "Init parallel device failed.");
+                dev_err(&pdev->dev, "Init parallel device failed.\n");
         }
 
-
+        dev_info(&pdev->dev, "probe done...\n");
 
         return 0;
 
@@ -214,9 +221,10 @@ static int pl_parallel_remove(struct platform_device *pdev)
         class_destroy(pl_parallel_class);
         cdev_del(pl_parallel_cdev);
         unregister_chrdev_region(pl_parallel_dev_t, 1);
+        return 0;
 }
 
-static const platform_driver pl_parallel_driver = {
+static struct platform_driver pl_parallel_driver = {
         .driver = {
                 .name = DEVICE_NAME,
                 .owner = THIS_MODULE,
@@ -235,7 +243,7 @@ static int __init pl_parallel_init(void)
         return platform_driver_probe(&pl_parallel_driver, pl_parallel_probe);
 }
 
-static void ___exit pl_parallel_exit(void)
+static void __exit pl_parallel_exit(void)
 {
         pr_info("%s: Exiting module...\n", THIS_MODULE->name);
         platform_driver_unregister(&pl_parallel_driver);
@@ -244,7 +252,7 @@ static void ___exit pl_parallel_exit(void)
 module_init(pl_parallel_init);
 module_exit(pl_parallel_exit);
 
-MODULE_LICENCE("GPL v3");
+MODULE_LICENSE("GPL");
 MODULE_VERSION("v1.0.0");
 MODULE_DESCRIPTION("Parallel driver for PL Germany devices.");
 MODULE_AUTHOR("Lars Görner <lars.goerner@plasticlogic.com>");
