@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2021 PL Germany
  *
- * Cape for SEPDC
+ * Cape for PL_PARALLEL
  *
  * License stuff !!!
  */
@@ -16,7 +16,7 @@
     compatible = "ti,beaglebone", "ti,beaglebone-black";
 
     /* identification */
-    part-number = "PLRAP";
+    part-number = "PL_PARALLEL";
     version = "00A0";
 
     /* state the resources this cape uses */
