@@ -178,7 +178,7 @@ static inline void am335x_lcdc_set_idle_mode(void __iomem *base_addr,
         union am335x_lcdc_sysconfig_reg reg;
         reg.reg_val = readl(base_addr + AM335X_LCDC_SYSCONFIG_OFFS);
         reg.idlemode = mode;
-        writel(base_addr + AM335X_LCDC_SYSCONFIG_OFFS);
+        writel(reg.reg_val, base_addr + AM335X_LCDC_SYSCONFIG_OFFS);
 }
 
 static inline enum idle_mode am335x_lcdc_get_idle_mode(void __iomem *base_addr)
@@ -216,7 +216,7 @@ union am335x_lcdc_irqstatus_reg {
                 uint32_t pl_en_clr : 1;
                 uint32_t reserved2 : 1;
                 uint32_t eof0_en_clr : 1;
-                uint32_t eof0_en_clr : 1;
+                uint32_t eof1_en_clr : 1;
                 uint32_t reserved3 : 22;
         };
         uint32_t reg_val;
@@ -233,7 +233,7 @@ union am335x_lcdc_irqenable_set_reg {
                 uint32_t pl_en_set : 1;
                 uint32_t reserved2 : 1;
                 uint32_t eof0_en_set : 1;
-                uint32_t eof0_en_set : 1;
+                uint32_t eof1_en_set : 1;
                 uint32_t reserved3 : 22;
         };
         uint32_t reg_val;
@@ -250,7 +250,7 @@ union am335x_lcdc_irqenable_clear_reg {
                 uint32_t pl_en_clr : 1;
                 uint32_t reserved2 : 1;
                 uint32_t eof0_en_clr : 1;
-                uint32_t eof0_en_clr : 1;
+                uint32_t eof1_en_clr : 1;
                 uint32_t reserved3 : 22;
         };
         uint32_t reg_val;
@@ -294,7 +294,7 @@ static inline void am335x_lcdc_set_lidd_clk_en(void __iomem *base_addr,
 static inline int am335x_lcdc_get_lidd_clk_en(void __iomem *base_addr)
 {
         union am335x_lcdc_clkc_enable_reg reg;
-        reg.reg_val = readlbase_addr + AM335X_LCDC_CLKC_ENABLE_OFFS);
+        reg.reg_val = readl(base_addr + AM335X_LCDC_CLKC_ENABLE_OFFS);
         return reg.lidd_clk_en;
 }
 
@@ -354,7 +354,7 @@ static inline int am335x_lcdc_get_core_clk_rst(void __iomem *base_addr)
 {
         union am335x_lcdc_clkc_reset_reg reg;
         reg.reg_val = readl(base_addr + AM335X_LCDC_CLKC_RESET_OFFS);
-        reg.core_rst;
+        return reg.core_rst;
 }
 
 static inline void am335x_lcdc_set_lidd_clk_rst(void __iomem *base_addr,
@@ -402,14 +402,6 @@ struct am335x_lidd_timings {
         unsigned char ta;
 };
 
-struct am335x_lidd_sig_pol {
-        sig_pol_t ale_pol : 1;
-        sig_pol_t rs_en_pol : 1;
-        sig_pol_t ws_dir_pol : 1;
-        sig_pol_t cs0_e0_pol : 1;
-        sig_pol_t cs1_e1_pol : 1;
-};
-
 enum lidd_mode {
         SYNC_MPU68 = 0,
         ASYNC_MPU68 = 1,
@@ -421,6 +413,14 @@ enum lidd_mode {
 enum polarity {
         NO_INVERT = 0,
         INVERT = 1,
+};
+
+struct am335x_lidd_sig_pol {
+        enum polarity ale_pol;
+        enum polarity rs_en_pol;
+        enum polarity ws_dir_pol;
+        enum polarity cs0_e0_pol;
+        enum polarity cs1_e1_pol;
 };
 
 enum lidd_device {
@@ -612,19 +612,19 @@ union am335x_lcdc_lidd_csx_conf_reg {
 };
 
 #define get_lidd_csx_conf_offs(lidd_device)     \
-        ld == LIDD_CS0 ?                        \
-                AM335X_LCDC_LIDD_CS0_CONF_OFFS :\
-                AM335X_LCDC_LIDD_CS1_CONF_OFFS
+        (ld == LIDD_CS0 ?                       \
+        AM335X_LCDC_LIDD_CS0_CONF_OFFS :        \
+        AM335X_LCDC_LIDD_CS1_CONF_OFFS)
 
 #define get_lidd_csx_addr_offs(lidd_device)     \
-        ld == LIDD_CS0 ?                        \
-                AM335X_LCDC_LIDD_CS0_ADDR_OFFS :\
-                AM335X_LCDC_LIDD_CS1_ADDR_OFFS
+        (ld == LIDD_CS0 ?                       \
+        AM335X_LCDC_LIDD_CS0_ADDR_OFFS :        \
+        AM335X_LCDC_LIDD_CS1_ADDR_OFFS)
 
 #define get_lidd_csx_data_offs(lidd_device)     \
-        ld == LIDD_CS0 ?                        \
-                AM335X_LCDC_LIDD_CS0_DATA_OFFS :\
-                AM335X_LCDC_LIDD_CS1_DATA_OFFS
+        (ld == LIDD_CS0 ?                       \
+        AM335X_LCDC_LIDD_CS0_DATA_OFFS :        \
+        AM335X_LCDC_LIDD_CS1_DATA_OFFS)
 
 static inline void am335x_set_lidd_ta(void __iomem *base_addr, 
                                       enum lidd_device ld, int ta)
@@ -768,13 +768,13 @@ static inline struct am335x_lidd_timings am335x_get_lidd_timings(
         union am335x_lcdc_lidd_csx_conf_reg reg;
         struct am335x_lidd_timings lt;
         reg.reg_val = readl(base_addr + get_lidd_csx_conf_offs(ld));
-        lt->r_hold = reg.r_hold;
-        lt->r_strobe = reg.r_strobe;
-        lt->r_setup = reg.r_su;
-        lt->w_hold = reg.w_hold;
-        lt->w_strobe = reg.w_strobe;
-        lt->w_setup = reg.w_su;
-        lt->ta 0 reg.ta;
+        lt.r_hold = reg.r_hold;
+        lt.r_strobe = reg.r_strobe;
+        lt.r_setup = reg.r_su;
+        lt.w_hold = reg.w_hold;
+        lt.w_strobe = reg.w_strobe;
+        lt.w_setup = reg.w_su;
+        lt.ta = reg.ta;
         return lt;
 }
 
@@ -804,8 +804,7 @@ union am335x_lcdc_lidd_csx_data_reg {
 };
 
 static inline void am335x_set_lidd_data(void __iomem *base_addr,
-                                        enum lidd_device ld,
-                                        const void *data)
+                                        enum lidd_device ld, short data)
 {
         union am335x_lcdc_lidd_csx_data_reg reg;
         reg.reg_val = readl(base_addr + get_lidd_csx_data_offs(ld));
@@ -919,13 +918,15 @@ static inline void am335x_set_lcddma_master_prio(void __iomem *base_addr,
         writel(reg.reg_val, base_addr + AM335X_LCDC_LCDDMA_CTRL_OFFS);
 }
 
-#define get_lcddma_fbx_base_offs(fb)                    \
-        fb == FB0 ? AM335X_LCDC_LCDDMA_FB0_BASE_OFFS :  \
-        AM335X_LCDC_LCDDMA_FB1_BASE_OFFS
+#define get_lcddma_fbx_base_offs(fb)            \
+        (fb == FB0 ?                            \
+        AM335X_LCDC_LCDDMA_FB0_BASE_OFFS :      \
+        AM335X_LCDC_LCDDMA_FB1_BASE_OFFS)
 
-#define get_lcddma_fbx_ceil_offs(fb)                    \
-        fb == FB0 ? AM335X_LCDC_LCDDMA_FB0_CEIL_OFFS :  \
-        AM335X_LCDC_LCDDMA_FB1_CEIL_OFFS
+#define get_lcddma_fbx_ceil_offs(fb)            \
+        (fb == FB0 ?                            \
+        AM335X_LCDC_LCDDMA_FB0_CEIL_OFFS :      \
+        AM335X_LCDC_LCDDMA_FB1_CEIL_OFFS)
 
 union am335x_lcdc_lcddma_fbx_base_reg {
         struct {
@@ -937,11 +938,11 @@ union am335x_lcdc_lcddma_fbx_base_reg {
 
 static inline void am335x_set_lcddma_fbx_base_addr(void __iomem *base_addr,
                                                    enum dma_framebuffer fb,
-                                                   const void *base_addr)
+                                                   const void *base)
 {
         union am335x_lcdc_lcddma_fbx_base_reg reg;
         reg.reg_val = readl(base_addr + get_lcddma_fbx_base_offs(fb));
-        reg.fb_base = base_addr >> 2;
+        reg.fb_base = (uintptr_t)base >> 2;
         writel(reg.reg_val, base_addr + get_lcddma_fbx_base_offs(fb));
 }
 
@@ -955,11 +956,11 @@ union am335x_lcdc_lcddma_fbx_ceiling_reg {
 
 static inline void am335x_set_lcddma_fbx_ceil_addr(void __iomem *base_addr,
                                                    enum dma_framebuffer fb,
-                                                   const void *ceil_addr)
+                                                   const void *ceil)
 {
         union am335x_lcdc_lcddma_fbx_ceiling_reg reg;
         reg.reg_val = readl(base_addr + get_lcddma_fbx_base_offs(fb));
-        reg.fb_ceil = ceil_addr >> 2;
+        reg.fb_ceil = (uintptr_t)ceil >> 2;
         writel(reg.reg_val, base_addr + get_lcddma_fbx_base_offs(fb));
 }
 
