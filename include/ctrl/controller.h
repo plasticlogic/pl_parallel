@@ -15,6 +15,8 @@
 #include <linux/kernel.h>
 #include <linux/kobject.h>
 #include <linux/gpio/consumer.h>
+#include <linux/clk.h>
+#include <linux/ioport.h>
 
 #define PAR_CTRL_NAME "ctrl"
 #define HRDY_GPIO_ID    "hrdy"
@@ -22,6 +24,8 @@
 struct controller {
         struct kobject kobj;
         struct device *dev;
+        struct resource *hw_res;
+        struct clk *hw_clk;
         int (*init)(struct controller *ctrl);
         ssize_t (*read)(struct controller *ctrl, short addr, 
                         short *buf, size_t len);

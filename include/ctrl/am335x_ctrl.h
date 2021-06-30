@@ -18,8 +18,6 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/io.h>
-#include <linux/ioport.h>
-#include <linux/clk.h>
 #include <linux/string.h>
 
 #include <ctrl/controller.h>
@@ -28,8 +26,6 @@
 
 struct am335x_ctrl {
         struct controller ctrl;
-        struct clk *hw_clk;
-        struct resource *hw_res;
         void __iomem *reg_base_addr;
 };
 #define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl.kobj)
