@@ -17,11 +17,12 @@
 #include <linux/device.h>
 #include <linux/slab.h>
 #include <linux/sysfs.h>
+#include <linux/io.h>
 #include <linux/ioport.h>
 #include <linux/clk.h>
 #include <linux/string.h>
 
-#include <controller.h>
+#include <ctrl/controller.h>
 
 #define AM335X_TCON_CLK_IDENTIFIER      "l4_per_cm:clk:0004:0"
 
@@ -36,7 +37,7 @@ struct am335x_ctrl {
 struct am335x_attribute {
         struct attribute attr;
         ssize_t (*show)(struct am335x_ctrl *ctrl, 
-                        struct am335_x_attribute *attr, char *buf);
+                        struct am335x_attribute *attr, char *buf);
         ssize_t (*store)(struct am335x_ctrl *ctrl,
                          struct am335x_attribute *attr,
                          const char *buf, size_t count);
