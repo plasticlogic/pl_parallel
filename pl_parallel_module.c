@@ -193,6 +193,14 @@ static int pl_parallel_probe(struct platform_device *pdev)
         }
         ctrl->dev = &pdev->dev;
 
+        // get device resource
+        ctrl->hw_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+        if(!ctrl->hw_res) {
+                dev_err(&pdev->dev, "Get HW resource failed.\n");
+                ret = -EINVAL;
+                goto get_pdev_res_fail;
+        }
+
         dev_info(&pdev->dev, "Init device...\n");
         ret = ctrl->init(ctrl);
         if(ret) {
@@ -203,6 +211,8 @@ static int pl_parallel_probe(struct platform_device *pdev)
 
         return 0;
 
+get_pdev_res_fail:
+        ctrl->destroy(ctrl);
 create_dev_fail:
         class_destroy(pl_parallel_class);
 create_class_fail:
