@@ -21,10 +21,12 @@ static ssize_t am335x_attr_show(struct kobject *kobj,
                                 struct attribute *attr, char *buf)
 {
         struct am335x_attribute *attribute;
+        struct controller *base;
         struct am335x_ctrl *ctrl;
 
         attribute = to_am335x_attr(attr);
-        ctrl = to_am335x_ctrl(kobj);
+        base = to_controller(kobj);
+        ctrl = to_am335x_ctrl(base);
 
         if(!attribute->show)
                 return -EIO;
@@ -37,10 +39,12 @@ static ssize_t am335x_attr_store(struct kobject *kobj,
                                 const char *buf, size_t count)
 {
         struct am335x_attribute *attribute;
+        struct controller *base;
         struct am335x_ctrl *ctrl;
 
         attribute = to_am335x_attr(attr);
-        ctrl = to_am335x_ctrl(kobj);
+        base = to_controller(kobj);
+        ctrl = to_am335x_ctrl(base);
 
         if(!attribute->store)
                 return -EIO;
@@ -56,11 +60,13 @@ static const struct sysfs_ops am335x_sysfs_ops = {
 static void am335x_release(struct kobject *kobj)
 {
         struct am335x_ctrl *ctrl;
+        struct controller *base;
 
-        ctrl = to_am335x_ctrl(kobj);
+        base = to_controller(kobj);
+        ctrl = to_am335x_ctrl(base);
         gpiod_put(ctrl->ctrl.hrdy_gpio);
         devm_iounmap(ctrl->ctrl.dev, ctrl->reg_base_addr);
-        devm_clk_put(ctrl->ctrl.dev, ctrl->ctrl.hw_clk);
+        devm_clk_put(ctrl->ctrl.dev, ctrl->hw_clk);
         kfree(ctrl);
 }
 
@@ -71,7 +77,7 @@ static ssize_t clk_freq_show(struct am335x_ctrl *ctrl,
                              struct am335x_attribute *attr, char *buf)
 {
         unsigned long clk_freq, clk_div, ret;
-        clk_freq = clk_get_rate(ctrl->ctrl.hw_clk);
+        clk_freq = clk_get_rate(ctrl->hw_clk);
         clk_div = am335x_lcdc_get_clkdiv(ctrl->reg_base_addr);
         ret = clk_freq / clk_div;
         return sprintf(buf, "%lu\n", ret);
@@ -90,7 +96,7 @@ static ssize_t clk_freq_store(struct am335x_ctrl *ctrl,
         
         clk_div = am335x_lcdc_get_clkdiv(ctrl->reg_base_addr);
         clk_freq = new_freq * clk_div;
-        ret = clk_set_rate(ctrl->ctrl.hw_clk, clk_freq);
+        ret = clk_set_rate(ctrl->hw_clk, clk_freq);
         if(ret)
                 return ret;
 
@@ -104,8 +110,8 @@ static ssize_t w_su_show(struct am335x_ctrl *ctrl, struct am335x_attribute *attr
                          char *buf)
 {
         int w_su_cs0, w_su_cs1;
-        w_su_cs0 = am335x_get_lidd_w_su(ctrl->ctrl.hw_res, LIDD_CS0);
-        w_su_cs1 = am335x_get_lidd_w_su(ctrl->ctrl.hw_res, LIDD_CS1);
+        w_su_cs0 = am335x_get_lidd_w_su(ctrl->hw_res, LIDD_CS0);
+        w_su_cs1 = am335x_get_lidd_w_su(ctrl->hw_res, LIDD_CS1);
         return sprintf(buf, "%d %d\n", w_su_cs0, w_su_cs1);
 }
 
@@ -460,7 +466,8 @@ static struct kobj_type am335x_ktype = {
 static int init(struct controller *ctrl)
 {
         int ret;
-        struct am335x_ctrl *c = to_am335x_ctrl(&ctrl->kobj);
+        struct platform_device *pdev;
+        struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
 
         if(!ctrl->dev) {
                 dev_err(ctrl->dev, "dev not set!");
@@ -468,38 +475,47 @@ static int init(struct controller *ctrl)
         }
 
         // request CLK GCLK clock
-        ctrl->hw_clk = devm_clk_get(ctrl->dev, AM335X_TCON_CLK_IDENTIFIER);
-        ret = clk_prepare(ctrl->hw_clk);
+        c->hw_clk = devm_clk_get(ctrl->dev, AM335X_TCON_CLK_IDENTIFIER);
+        ret = clk_prepare(c->hw_clk);
         if(ret) {
                 dev_err(ctrl->dev, "Prepare HW clock failed.");
                 goto clk_prep_fail;
         }
 
         // set clock frequency
-        ret = clk_set_rate(ctrl->hw_clk, init_hw_clk_freq);
+        ret = clk_set_rate(c->hw_clk, init_hw_clk_freq);
         if(ret) {
                 dev_err(ctrl->dev, "Set HW clock rate failed.");
                 goto clk_set_rate_fail;
         }
 
         // enable clock
-        ret = clk_enable(ctrl->hw_clk);
+        ret = clk_enable(c->hw_clk);
         if(ret) {
                 dev_err(ctrl->dev, "Enable HW clk failed.");
                 goto clk_en_fail;
         }
 
         // get LCDC resource
-        if(!devm_request_mem_region(ctrl->dev, ctrl->hw_res->start, 
-                                    resource_size(ctrl->hw_res), 
+        pdev = container_of(ctrl->dev, struct platform_device, dev);
+
+        c->hw_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+        if(!c->hw_res) {
+                dev_err(ctrl->dev, "Get HW resource failed.\n");
+                ret = -EINVAL;
+                goto get_pdev_res_fail;
+        }
+
+        if(!devm_request_mem_region(ctrl->dev, c->hw_res->start, 
+                                    resource_size(c->hw_res), 
                                     dev_name(ctrl->dev))) {
                 dev_err(ctrl->dev, "Request HW memory failed.\n");
                 ret = -EBUSY;
                 goto req_hw_mem_fail;
         }
 
-        c->reg_base_addr = devm_ioremap(ctrl->dev, ctrl->hw_res->start, 
-                                        resource_size(ctrl->hw_res));
+        c->reg_base_addr = devm_ioremap(ctrl->dev, c->hw_res->start, 
+                                        resource_size(c->hw_res));
         if(!c->reg_base_addr) {
                 dev_err(ctrl->dev, "Remap HW memory failed.");
                 ret = -ENOMEM;
@@ -545,7 +561,8 @@ hrdy_gpio_fail:
         devm_iounmap(ctrl->dev, c->reg_base_addr);
 remap_res_fail:
 req_hw_mem_fail:
-        devm_clk_put(ctrl->dev, ctrl->hw_clk);
+get_pdev_res_fail:
+        devm_clk_put(ctrl->dev, c->hw_clk);
 clk_en_fail:
 clk_set_rate_fail:
 clk_prep_fail:
@@ -574,7 +591,8 @@ static ssize_t read(struct controller *ctrl, short addr, short *buf, size_t len)
 static ssize_t write(struct controller *ctrl, short addr, 
                      const short *buf, size_t len)
 {
-        struct am335x_ctrl *c = to_am335x_ctrl(&ctrl->kobj);
+        struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
+        dev_info(ctrl->dev, "Start writing\n");
         write_addr(c, addr);
         if(len > 0) {
                 if(!buf)
