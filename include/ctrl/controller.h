@@ -24,8 +24,6 @@
 struct controller {
         struct kobject kobj;
         struct device *dev;
-        struct resource *hw_res;
-        struct clk *hw_clk;
         int (*init)(struct controller *ctrl);
         ssize_t (*read)(struct controller *ctrl, short addr, 
                         short *buf, size_t len);

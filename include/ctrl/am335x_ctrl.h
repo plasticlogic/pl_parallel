@@ -19,6 +19,7 @@
 #include <linux/sysfs.h>
 #include <linux/io.h>
 #include <linux/string.h>
+#include <linux/platform_device.h>
 
 #include <ctrl/controller.h>
 
@@ -26,9 +27,11 @@
 
 struct am335x_ctrl {
         struct controller ctrl;
+        struct resource *hw_res;
+        struct clk *hw_clk;
         void __iomem *reg_base_addr;
 };
-#define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl.kobj)
+#define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl)
 
 struct am335x_attribute {
         struct attribute attr;
