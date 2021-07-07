@@ -89,7 +89,7 @@ static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                 goto copy_user_data_fail;
         }
         
-        ret = ctrl->write(ctrl, data_buf, size);
+        ret = ctrl->write(ctrl, data_buf, size / 2);
         kfree(data_buf);
         return size;
 
