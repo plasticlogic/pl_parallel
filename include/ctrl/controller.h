@@ -14,7 +14,6 @@
 
 #include <linux/kernel.h>
 #include <linux/kobject.h>
-#include <linux/gpio/consumer.h>
 #include <linux/clk.h>
 #include <linux/ioport.h>
 
@@ -28,7 +27,6 @@ struct controller {
         ssize_t (*write)(struct controller *ctrl, const short *buf, size_t len);
         void (*destroy)(struct controller *ctrl, struct platform_device *pdev,
                         struct class *c);
-        //struct gpio_desc *hrdy_gpio;
 };
 
 #endif /* CONTROLLER_H */

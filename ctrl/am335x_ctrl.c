@@ -586,14 +586,6 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
         if(ret)
                 goto polarities_add_fail;
 
-        //// get HRDY GPIO
-        //ctrl->hrdy_gpio = gpiod_get(ctrl->dev, HRDY_GPIO_ID, GPIOD_IN);
-        //if(IS_ERR(ctrl->hrdy_gpio)) {
-        //        dev_err(ctrl->dev, "Request HRDY GPIO failed.");
-        //        ret = PTR_ERR(ctrl->hrdy_gpio);
-        //        goto hrdy_gpio_fail;
-        //}
-
         // enable clocks        
         am335x_lcdc_set_core_clk_en(am_ctrl->reg_base_addr, 1);
         am335x_lcdc_set_lidd_clk_en(am_ctrl->reg_base_addr, 1);
