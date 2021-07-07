@@ -53,7 +53,8 @@ static ssize_t pl_parallel_read(struct file *file, char __user *data,
                                 size_t size, loff_t *offset)
 {
         pr_info("READ FROM DEVICE!\n");
-        return -EPERM;
+        pr_info("read size: %d | offset: %lld\n", size, *offset);
+        return size;
 }
 
 static ssize_t pl_parallel_write(struct file *file, const char __user *data,
@@ -175,6 +176,7 @@ static int pl_parallel_probe(struct platform_device *pdev)
         if(!pl_parallel_cdev) {
                 dev_err(&pdev->dev, "Alloc cdev memory failed.\n");
                 ret = -ENOMEM;
+                goto cdev_alloc_fail;
         }
 
         ret = alloc_chrdev_region(&dev_type, 0, 1, DEVICE_NAME);
@@ -227,15 +229,14 @@ static int pl_parallel_probe(struct platform_device *pdev)
 init_dev_fail:
         ctrl->destroy(ctrl, pdev, &pl_parallel_class);
 create_dev_fail:
-get_pdev_res_fail:
-class_register_fail:
         class_unregister(&pl_parallel_class);
-create_class_fail:
+class_register_fail:
         cdev_del(pl_parallel_cdev);
 add_cdev_fail:
-alloc_cdev_fail:
         unregister_chrdev_region(MKDEV(dev_major, 0), 1);
 alloc_cdev_region_fail:
+        devm_kfree(&pdev->dev, pl_parallel_cdev);
+cdev_alloc_fail:
 of_match_fail:
         return ret;
 }
