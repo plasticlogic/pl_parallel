@@ -275,11 +275,17 @@ static struct attribute *am335x_timings_attrs[] = {
 
 ATTRIBUTE_GROUPS(am335x_timings);
 
+static void timings_dev_release(struct device *dev)
+{
+        memset(dev, 0, sizeof(*dev));
+}
+
 static int am335x_timings_sysfs_register(struct am335x_ctrl *ctrl, struct class *c)
 {
         int ret;
         ctrl->timing_dev.class = c;
         ctrl->timing_dev.groups = am335x_timings_groups;
+        ctrl->timing_dev.release = timings_dev_release;
 
         ret = dev_set_name(&ctrl->timing_dev, TIMING_DEVICE_NAME);
         if(ret)
@@ -450,12 +456,18 @@ static struct attribute *am335x_polarities_attrs[] = {
 
 ATTRIBUTE_GROUPS(am335x_polarities);
 
+static void polarities_dev_release(struct device *dev)
+{
+        memset(dev, 0, sizeof(*dev));
+}
+
 static int am335x_polarities_sysfs_register(struct am335x_ctrl *ctrl, struct class *c)
 {
         int ret;
 
         ctrl->pol_dev.class = c;
         ctrl->pol_dev.groups = am335x_polarities_groups;
+        ctrl->pol_dev.release = polarities_dev_release;
         ret = dev_set_name(&ctrl->pol_dev, POLARITY_DEVICE_NAME);
         if(ret)
                 return ret;
