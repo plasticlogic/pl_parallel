@@ -601,7 +601,7 @@ clk_prep_fail:
 clk_get_fail:
         devm_iounmap(&pdev->dev, am_ctrl->reg_base_addr);
 remap_res_fail:
-        devm_release_mem_region(&pdev->dev, am_ctrl->hw_res, 
+        devm_release_mem_region(&pdev->dev, am_ctrl->hw_res->start, 
                                 resource_size(am_ctrl->hw_res));
 req_hw_mem_fail:
 get_pdev_res_fail:
@@ -615,7 +615,7 @@ static void destroy(struct controller *ctrl, struct platform_device *pdev,
         //gpiod_put(ctrl->ctrl.hrdy_gpio);
         devm_clk_put(&pdev->dev, am_ctrl->hw_clk);
         devm_iounmap(&pdev->dev, am_ctrl->reg_base_addr);
-        devm_release_mem_region(&pdev->dev, am_ctrl->hw_res, 
+        devm_release_mem_region(&pdev->dev, am_ctrl->hw_res->start,
                                 resource_size(am_ctrl->hw_res));
         am335x_timings_sysfs_unregister(am_ctrl);
         am335x_polarities_sysfs_unregister(am_ctrl);
