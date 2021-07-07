@@ -18,20 +18,17 @@
 #include <linux/clk.h>
 #include <linux/ioport.h>
 
-#define PAR_CTRL_NAME "ctrl"
+#define PAR_CTRL_NAME   "tcon"
 #define HRDY_GPIO_ID    "hrdy"
 
 struct controller {
-        struct kobject kobj;
-        struct device *dev;
-        int (*init)(struct controller *ctrl);
-        ssize_t (*read)(struct controller *ctrl, short addr, 
-                        short *buf, size_t len);
-        ssize_t (*write)(struct controller *ctrl, short addr, 
-                         const short *buf, size_t len);
-        void (*destroy)(struct controller *ctrl);
-        struct gpio_desc *hrdy_gpio;
+        int (*init)(struct controller *ctrl, struct platform_device *pdev, 
+                struct class *c);
+        ssize_t (*read)(struct controller *ctrl, short *buf, size_t len);
+        ssize_t (*write)(struct controller *ctrl, const short *buf, size_t len);
+        void (*destroy)(struct controller *ctrl, struct platform_device *pdev,
+                        struct class *c);
+        //struct gpio_desc *hrdy_gpio;
 };
-#define to_controller(x) container_of(x, struct controller, kobj)
 
 #endif /* CONTROLLER_H */
