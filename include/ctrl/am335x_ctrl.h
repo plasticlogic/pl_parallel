@@ -32,7 +32,6 @@ struct am335x_ctrl {
         struct resource *hw_res;
         struct clk *hw_clk;
         void __iomem *reg_base_addr;
-        short cmd;
 };
 #define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl)
 
