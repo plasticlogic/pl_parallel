@@ -94,25 +94,23 @@ static DEVICE_ATTR_RW(clk_div);
 static ssize_t w_su_show(struct device *dev, 
                          struct device_attribute *attr, char *buf)
 {
-        int w_su_cs0, w_su_cs1;
+        int w_su;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
-        w_su_cs0 = am335x_get_lidd_w_su(ctrl->hw_res, LIDD_CS0);
-        w_su_cs1 = am335x_get_lidd_w_su(ctrl->hw_res, LIDD_CS1);
-        return sprintf(buf, "%d %d\n", w_su_cs0, w_su_cs1);
+        w_su = am335x_get_lidd_w_su(ctrl->hw_res, LIDD_CS0);
+        return sprintf(buf, "%d\n", w_su);//, w_su_cs1);
 }
 
 static ssize_t w_su_store(struct device *dev, struct device_attribute *attr,
                           const char *buf, size_t count)
 {
-        int ret, w_su_cs0, w_su_cs1;
+        int ret, w_su;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d %d\n", &w_su_cs0, &w_su_cs1);
+        ret = sscanf(buf, "%d\n", &w_su);
         if(ret < 0) 
                 return ret;
 
-        am335x_set_lidd_w_su(ctrl->reg_base_addr, LIDD_CS0, w_su_cs0);
-        am335x_set_lidd_w_su(ctrl->reg_base_addr, LIDD_CS1, w_su_cs1);
+        am335x_set_lidd_w_su(ctrl->reg_base_addr, LIDD_CS0, w_su);
         return count;
 }
 
@@ -122,26 +120,24 @@ static DEVICE_ATTR_RW(w_su);
 static ssize_t w_strobe_show(struct device *dev, 
                              struct device_attribute *attr, char *buf)
 {
-        int w_strobe_cs0, w_strobe_cs1;
+        int w_strobe;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        w_strobe_cs0 = am335x_get_lidd_w_strobe(ctrl->reg_base_addr, LIDD_CS0);
-        w_strobe_cs1 = am335x_get_lidd_w_strobe(ctrl->reg_base_addr, LIDD_CS1);
-        return sprintf(buf, "%d %d\n", w_strobe_cs0, w_strobe_cs1);
+        w_strobe = am335x_get_lidd_w_strobe(ctrl->reg_base_addr, LIDD_CS0);
+        return sprintf(buf, "%d\n", w_strobe);
 }
 
 static ssize_t w_strobe_store(struct device *dev, struct device_attribute *attr,
                               const char *buf, size_t count)
 {
-        int ret, w_strobe_cs0, w_strobe_cs1;
+        int ret, w_strobe;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d %d\n", &w_strobe_cs0, &w_strobe_cs1);
+        ret = sscanf(buf, "%d\n", &w_strobe);
         if(ret < 0) 
                 return ret;
 
-        am335x_set_lidd_w_strobe(ctrl->reg_base_addr, LIDD_CS0, w_strobe_cs0);
-        am335x_set_lidd_w_strobe(ctrl->reg_base_addr, LIDD_CS1, w_strobe_cs1);
+        am335x_set_lidd_w_strobe(ctrl->reg_base_addr, LIDD_CS0, w_strobe);
         return count;
 }
 
@@ -151,26 +147,24 @@ static DEVICE_ATTR_RW(w_strobe);
 static ssize_t w_hold_show(struct device *dev, 
                            struct device_attribute *attr, char *buf)
 {
-        int w_hold_cs0, w_hold_cs1;
+        int w_hold;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
         
-        w_hold_cs0 = am335x_get_lidd_w_hold(ctrl->reg_base_addr, LIDD_CS0);
-        w_hold_cs1 = am335x_get_lidd_w_hold(ctrl->reg_base_addr, LIDD_CS1);
-        return sprintf(buf, "%d %d\n", w_hold_cs0, w_hold_cs1);
+        w_hold = am335x_get_lidd_w_hold(ctrl->reg_base_addr, LIDD_CS0);
+        return sprintf(buf, "%d\n", w_hold);
 }
 
 static ssize_t w_hold_store(struct device *dev, struct device_attribute *attr,
                             const char *buf, size_t count)
 {
-        int ret, w_hold_cs0, w_hold_cs1;
+        int ret, w_hold;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d %d\n", &w_hold_cs0, &w_hold_cs1);
+        ret = sscanf(buf, "%d\n", &w_hold);
         if(ret < 0) 
                 return ret;
 
-        am335x_set_lidd_w_hold(ctrl->reg_base_addr, LIDD_CS0, w_hold_cs0);
-        am335x_set_lidd_w_hold(ctrl->reg_base_addr, LIDD_CS1, w_hold_cs1);
+        am335x_set_lidd_w_hold(ctrl->reg_base_addr, LIDD_CS0, w_hold);
         return count;
 }
 
@@ -180,26 +174,24 @@ static DEVICE_ATTR_RW(w_hold);
 static ssize_t r_su_show(struct device *dev, 
                          struct device_attribute *attr, char *buf)
 {
-        int r_su_cs0, r_su_cs1;
+        int r_su;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        r_su_cs0 = am335x_get_lidd_r_su(ctrl->reg_base_addr, LIDD_CS0);
-        r_su_cs1 = am335x_get_lidd_r_su(ctrl->reg_base_addr, LIDD_CS1);
-        return sprintf(buf, "%d %d\n", r_su_cs0, r_su_cs1);
+        r_su = am335x_get_lidd_r_su(ctrl->reg_base_addr, LIDD_CS0);
+        return sprintf(buf, "%d\n", r_su);
 }
 
 static ssize_t r_su_store(struct device *dev, struct device_attribute *attr,
                           const char *buf, size_t count)
 {
-        int ret, r_su_cs0, r_su_cs1;
+        int ret, r_su;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d %d\n", &r_su_cs0, &r_su_cs1);
+        ret = sscanf(buf, "%d\n", &r_su);
         if(ret < 0) 
                 return ret;
 
-        am335x_set_lidd_r_su(ctrl->reg_base_addr, LIDD_CS0, r_su_cs0);
-        am335x_set_lidd_r_su(ctrl->reg_base_addr, LIDD_CS1, r_su_cs1);
+        am335x_set_lidd_r_su(ctrl->reg_base_addr, LIDD_CS0, r_su);
         return count;
 }
 
@@ -209,26 +201,24 @@ static DEVICE_ATTR_RW(r_su);
 static ssize_t r_strobe_show(struct device *dev, 
                              struct device_attribute *attr, char *buf)
 {
-        int r_strobe_cs0, r_strobe_cs1;
+        int r_strobe;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        r_strobe_cs0 = am335x_get_lidd_r_strobe(ctrl->reg_base_addr, LIDD_CS0);
-        r_strobe_cs1 = am335x_get_lidd_r_strobe(ctrl->reg_base_addr, LIDD_CS1);
-        return sprintf(buf, "%d %d\n", r_strobe_cs0, r_strobe_cs1);
+        r_strobe = am335x_get_lidd_r_strobe(ctrl->reg_base_addr, LIDD_CS0);
+        return sprintf(buf, "%d\n", r_strobe);
 }
 
 static ssize_t r_strobe_store(struct device *dev, struct device_attribute *attr,
                               const char *buf, size_t count)
 {
-        int ret, r_strobe_cs0, r_strobe_cs1;
+        int ret, r_strobe;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d %d\n", &r_strobe_cs0, &r_strobe_cs1);
+        ret = sscanf(buf, "%d\n", &r_strobe);
         if(ret < 0) 
                 return ret;
 
-        am335x_set_lidd_r_strobe(ctrl->reg_base_addr, LIDD_CS0, r_strobe_cs0);
-        am335x_set_lidd_r_strobe(ctrl->reg_base_addr, LIDD_CS1, r_strobe_cs1);
+        am335x_set_lidd_r_strobe(ctrl->reg_base_addr, LIDD_CS0, r_strobe);
         return count;
 }
 
@@ -238,26 +228,24 @@ static DEVICE_ATTR_RW(r_strobe);
 static ssize_t r_hold_show(struct device *dev, 
                            struct device_attribute *attr, char *buf)
 {
-        int r_hold_cs0, r_hold_cs1;
+        int r_hold;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        r_hold_cs0 = am335x_get_lidd_r_hold(ctrl->reg_base_addr, LIDD_CS0);
-        r_hold_cs1 = am335x_get_lidd_r_hold(ctrl->reg_base_addr, LIDD_CS1);
-        return sprintf(buf, "%d %d\n", r_hold_cs0, r_hold_cs1);
+        r_hold = am335x_get_lidd_r_hold(ctrl->reg_base_addr, LIDD_CS0);
+        return sprintf(buf, "%d\n", r_hold);
 }
 
 static ssize_t r_hold_store(struct device *dev, struct device_attribute *attr,
                             const char *buf, size_t count)
 {
-        int ret, r_hold_cs0, r_hold_cs1;
+        int ret, r_hold;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d %d\n", &r_hold_cs0, &r_hold_cs1);
+        ret = sscanf(buf, "%d\n", &r_hold);
         if(ret < 0)
                 return ret;
 
-        am335x_set_lidd_r_hold(ctrl->reg_base_addr, LIDD_CS0, r_hold_cs0);
-        am335x_set_lidd_r_hold(ctrl->reg_base_addr, LIDD_CS1, r_hold_cs1);
+        am335x_set_lidd_r_hold(ctrl->reg_base_addr, LIDD_CS0, r_hold);
         return count;
 }
 
@@ -267,26 +255,24 @@ static DEVICE_ATTR_RW(r_hold);
 static ssize_t cs_delay_show(struct device *dev, struct 
                              device_attribute *attr, char *buf)
 {
-        int cs_delay_cs0, cs_delay_cs1;
+        int cs_delay;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        cs_delay_cs0 = am335x_get_lidd_ta(ctrl->reg_base_addr, LIDD_CS0);
-        cs_delay_cs1 = am335x_get_lidd_ta(ctrl->reg_base_addr, LIDD_CS1);
-        return sprintf(buf, "%d %d\n", cs_delay_cs0, cs_delay_cs1);
+        cs_delay = am335x_get_lidd_ta(ctrl->reg_base_addr, LIDD_CS0);
+        return sprintf(buf, "%d\n", cs_delay);
 }
 
 static ssize_t cs_delay_store(struct device *dev, struct device_attribute *attr,
                               const char *buf, size_t count)
 {
-        int ret, cs_delay_cs0, cs_delay_cs1;
+        int ret, cs_delay;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d %d\n", &cs_delay_cs0, &cs_delay_cs1);
+        ret = sscanf(buf, "%d\n", &cs_delay);
         if(ret < 0) 
                 return ret;
 
-        am335x_set_lidd_ta(ctrl->reg_base_addr, LIDD_CS0, cs_delay_cs0);
-        am335x_set_lidd_ta(ctrl->reg_base_addr, LIDD_CS1, cs_delay_cs1);
+        am335x_set_lidd_ta(ctrl->reg_base_addr, LIDD_CS0, cs_delay);
         return count;
 }
 
@@ -520,6 +506,7 @@ static void am335x_polarities_sysfs_unregister(struct am335x_ctrl *ctrl)
 // Controller functions
 
 static const unsigned int init_hw_clk_freq = 2000000;
+static const int init_clk_div = 2;
 
 static struct am335x_lidd_timings init_timings = {
         .w_setup = 1,
@@ -613,8 +600,7 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
         am335x_lcdc_set_dma_clk_en(am_ctrl->reg_base_addr, 1);
 
         // set clock divisor
-        am335x_lcdc_set_clkdiv(am_ctrl->reg_base_addr, 2);
-#pragma GCC warning "clock divisor must be set properly!"
+        am335x_lcdc_set_clkdiv(am_ctrl->reg_base_addr, init_clk_div);
 
         // set signal polarities
         am335x_set_lidd_pols(am_ctrl->reg_base_addr, &init_sig_pols);
