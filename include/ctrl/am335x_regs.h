@@ -807,9 +807,15 @@ static inline void am335x_set_lidd_data(void __iomem *base_addr,
                                         enum lidd_device ld, short data)
 {
         union am335x_lcdc_lidd_csx_data_reg reg;
-        reg.reg_val = readl(base_addr + get_lidd_csx_data_offs(ld));
-        reg.data = data;
         writel(reg.reg_val, base_addr + get_lidd_csx_data_offs(ld));
+}
+
+static inline short am335x_get_lidd_data(void __iomem *base_addr,
+                                         enum lidd_device ld)
+{
+        union am335x_lcdc_lidd_csx_data_reg reg;
+        reg.reg_val = readl(base_addr + get_lidd_csx_data_offs(ld));
+        return reg.data;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
