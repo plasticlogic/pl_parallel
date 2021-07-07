@@ -39,13 +39,11 @@ static dev_t cdev_dev_t = 0;
 
 static int pl_parallel_open(struct inode *inode, struct file *file)
 {
-        pr_info("OPEN DEVICE!\n");
         return 0;
 }
 
 static int pl_parallel_release(struct inode *inode, struct file *file)
 {
-        pr_info("RELEASE DEVICE!\n");
         return 0;
 }
 
@@ -62,8 +60,6 @@ static ssize_t pl_parallel_write(struct file *file, const char __user *data,
 {
         short* data_buf;
         int ret;
-
-        pr_info("WRITE TO DEVICE. Buffer size: %d\n", size);
 
         data_buf = kzalloc(size, GFP_DMA);
         if(!data_buf) {
@@ -169,7 +165,6 @@ static int pl_parallel_probe(struct platform_device *pdev)
                 goto of_match_fail;
         }
 
-        dev_info(&pdev->dev, "Create class\n");
         // register class
         ret = class_register(&pl_parallel_class);
         if(ret) {
@@ -207,7 +202,6 @@ static int pl_parallel_probe(struct platform_device *pdev)
                 goto cdev_dev_create_fail;
         }
 
-        dev_info(&pdev->dev, "Create device\n");
         // create device
         dev_id = (struct platform_device_id *)of_id->data;
 
@@ -218,14 +212,11 @@ static int pl_parallel_probe(struct platform_device *pdev)
                 goto create_dev_fail;
         }
 
-        dev_info(&pdev->dev, "Init device...\n");
         ret = ctrl->init(ctrl, pdev, &pl_parallel_class);
         if(ret) {
                 dev_err(&pdev->dev, "Init parallel device failed.\n");
                 goto init_dev_fail;
         }
-
-        dev_info(&pdev->dev, "probe done...\n");
 
         return 0;
 

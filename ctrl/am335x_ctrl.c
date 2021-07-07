@@ -558,7 +558,6 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
         if(ret)
                 goto clk_en_fail;
 
-        pr_info("%s: Add am335x device if to class.\n", THIS_MODULE->name);
         // add object to sysfs
         ret = am335x_timings_sysfs_register(am_ctrl, c);
         if(ret)
@@ -637,7 +636,6 @@ static void destroy(struct controller *ctrl, struct platform_device *pdev,
 static void write_addr(struct am335x_ctrl *ctrl, short addr)
 {
         //am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
-        pr_info("ADDR: 0x%X\n", addr); //ctrl->cmd);
         am335x_set_lidd_addr(ctrl->reg_base_addr, LIDD_CS0, addr); //ctrl->cmd);
 }
 
@@ -645,7 +643,6 @@ static void write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
 {
         const short *tmp = data;
         do {
-                pr_info("DATA: 0x%X\n", *tmp);
                 am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, *tmp++);
         } while(--len > 0);
         //am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
@@ -667,14 +664,11 @@ static ssize_t read(struct controller *ctrl, short *buf, size_t len)
 static ssize_t write(struct controller *ctrl, const short *buf, size_t len)
 {
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
-        pr_info("Start writing\n");
-        pr_info("Write command...\n");
         write_addr(c, *buf);
         if(len > 0) {
                 if(!buf)
                         return -ENODATA;
         
-                pr_info("Write data...\n");
                 write_data(c, buf + 1, len - 1);
                 return len;
         }
@@ -685,7 +679,6 @@ struct controller *am335x_ctrl_create(void)
 {
         struct am335x_ctrl *ctrl;
 
-        pr_info("%s: Alloc am335x device memory.\n", THIS_MODULE->name);
         // create controller object
         ctrl = kzalloc(sizeof(*ctrl), GFP_KERNEL);
         if(!ctrl)
@@ -695,8 +688,6 @@ struct controller *am335x_ctrl_create(void)
         ctrl->ctrl.read = read;
         ctrl->ctrl.write = write;
         ctrl->ctrl.destroy = destroy;
-
-        pr_info("%s: Creating am335x device done.\n", THIS_MODULE->name);
 
         return &ctrl->ctrl;
 }
