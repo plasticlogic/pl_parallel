@@ -28,9 +28,9 @@
 #include <ctrl/am335x_ctrl.h>
 
 #define DEVICE_NAME     "parallel"
+#define CLASS_NAME      "pl_par"
 
 static int dev_major = 0;
-static struct class *pl_parallel_class = NULL;
 static struct cdev *pl_parallel_cdev = NULL;
 static struct controller *ctrl = NULL;
 
@@ -39,45 +39,55 @@ static struct controller *ctrl = NULL;
 
 static int pl_parallel_open(struct inode *inode, struct file *file)
 {
+        pr_info("OPEN DEVICE!\n");
         return 0;
 }
 
 static int pl_parallel_release(struct inode *inode, struct file *file)
 {
+        pr_info("RELEASE DEVICE!\n");
         return 0;
 }
 
 static ssize_t pl_parallel_read(struct file *file, char __user *data,
                                 size_t size, loff_t *offset)
 {
+        pr_info("READ FROM DEVICE!\n");
         return -EPERM;
 }
 
 static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                                  size_t size, loff_t *offset)
 {
-        short* buffer;
+        short* data_buf;
         int ret;
 
-        buffer = kzalloc(size, GFP_KERNEL);
-        if(!buffer) {
-                dev_err(ctrl->dev, "Allocate buffer failed.");
+        pr_info("WRITE TO DEVICE. Buffer size: %d\n", size);
+
+        data_buf = kzalloc(size, GFP_DMA);
+        if(!data_buf) {
+                pr_err("%s: Allocate buffer failed.\n", THIS_MODULE->name);
                 ret = -ENOMEM;
                 goto alloc_buf_mem_fail;
         }
 
-        ret = copy_from_user(buffer, data, size);
+        ret = copy_from_user(data_buf, data, size);
         if(ret) {
-                dev_err(ctrl->dev, "Copy data from user space failed.");
+                pr_err("%s: Copy data from user space failed.\n", THIS_MODULE->name);
                 goto copy_user_data_fail;
         }
 
-        ret = ctrl->write(ctrl, buffer[0], &buffer[1], size - 1);
-        kfree(buffer);
-        return ret;
+        if(size < 2)
+                return -EINVAL;
+        
+        ret = ctrl->write(ctrl, data_buf, size);
+        
+        pr_info("ret = %d", ret);
+        kfree(data_buf);
+        return size;
 
 copy_user_data_fail:
-        kfree(buffer);
+        kfree(data_buf);
 alloc_buf_mem_fail:
         return ret;
 }
@@ -89,13 +99,6 @@ static struct file_operations pl_parallel_fops = {
         .read = pl_parallel_read,
         .write = pl_parallel_write,
 };
-
-static int pl_parallel_cdev_uevent(struct device *dev, 
-                                   struct kobj_uevent_env *env)
-{
-        add_uevent_var(env, "DEVMODE=%#o", 0666);
-        return 0;
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Devices
@@ -119,7 +122,7 @@ static const struct of_device_id pl_parallel_dt_ids[] = {
 };
 MODULE_DEVICE_TABLE(of, pl_parallel_dt_ids);
 
-static struct controller *get_controller_by_dev_id(
+static struct controller *get_controller_by_dev_id(struct platform_device *pdev,
                                         struct platform_device_id *id, 
                                         struct class *c)
 {
@@ -128,7 +131,7 @@ static struct controller *get_controller_by_dev_id(
         switch(id->driver_data) {
         case AM335X:
                 pr_info("%s: Create am335x ctrl device.\n", THIS_MODULE->name);
-                ctrl = am335x_ctrl_create(c);
+                ctrl = am335x_ctrl_create();
                 break;
         default:
                 ctrl = ERR_PTR(-ENODEV);
@@ -136,6 +139,15 @@ static struct controller *get_controller_by_dev_id(
         }
         return ctrl;
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// Class
+
+static struct class pl_parallel_class = {
+        .name = CLASS_NAME,
+        .owner = THIS_MODULE,
+        .class_groups = NULL,
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Driver
@@ -156,8 +168,8 @@ static int pl_parallel_probe(struct platform_device *pdev)
                 goto of_match_fail;
         }
         
+        dev_info(&pdev->dev, "Create cdev\n");
         // create cdev
-
         pl_parallel_cdev = devm_kzalloc(&pdev->dev, sizeof(*pl_parallel_cdev), 
                                         GFP_KERNEL);
         if(!pl_parallel_cdev) {
@@ -167,71 +179,57 @@ static int pl_parallel_probe(struct platform_device *pdev)
 
         ret = alloc_chrdev_region(&dev_type, 0, 1, DEVICE_NAME);
         if(ret) {
-                pr_err("%s: Alloc cdev region failed.\n", THIS_MODULE->name);
+                dev_err(&pdev->dev, "Alloc cdev region failed.\n");
                 goto alloc_cdev_region_fail;
         }
 
         dev_major = MAJOR(dev_type);
 
-        dev_info(&pdev->dev, "Create class\n");
-        // create class
-        pl_parallel_class = class_create(THIS_MODULE, DEVICE_NAME);
-        if(!pl_parallel_class) {
-                ret = -EEXIST;
-                pr_err("%s: Create class failed.\n", THIS_MODULE->name);
-                goto create_class_fail;
-        }
-        pl_parallel_class->dev_uevent = pl_parallel_cdev_uevent;
-
-        dev_info(&pdev->dev, "init cdev\n");
         cdev_init(pl_parallel_cdev, &pl_parallel_fops);
         pl_parallel_cdev->owner = THIS_MODULE;
 
-        dev_info(&pdev->dev, "add cdev\n");
         ret = cdev_add(pl_parallel_cdev, MKDEV(dev_major, 0), 1);
         if(ret) {
-                pr_err("%s: Add cdev failed.\n", THIS_MODULE->name);
+                dev_err(&pdev->dev, "Add cdev failed.\n");
                 goto add_cdev_fail;
         }
 
-        dev_info(&pdev->dev, "Create cdev\n");
-        device_create(pl_parallel_class, NULL, 
-                      MKDEV(dev_major, 0), NULL, DEVICE_NAME);
+        dev_info(&pdev->dev, "Create class\n");
+        // register class
+        ret = class_register(&pl_parallel_class);
+        if(ret) {
+                dev_err(&pdev->dev, "Rergister class failed.");
+                goto class_register_fail;
+        }
 
         dev_info(&pdev->dev, "Create device\n");
         // create device
         dev_id = (struct platform_device_id *)of_id->data;
 
-        ctrl = get_controller_by_dev_id(dev_id, pl_parallel_class);
+        ctrl = get_controller_by_dev_id(pdev, dev_id, &pl_parallel_class);
         if(IS_ERR(ctrl)) {
                 dev_err(&pdev->dev, "Create parallel device failed.\n");
                 ret = PTR_ERR(ctrl);
                 goto create_dev_fail;
         }
-        ctrl->dev = &pdev->dev;
-
-        // get device resource
-        ctrl->hw_res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-        if(!ctrl->hw_res) {
-                dev_err(&pdev->dev, "Get HW resource failed.\n");
-                ret = -EINVAL;
-                goto get_pdev_res_fail;
-        }
 
         dev_info(&pdev->dev, "Init device...\n");
-        ret = ctrl->init(ctrl);
+        ret = ctrl->init(ctrl, pdev, &pl_parallel_class);
         if(ret) {
                 dev_err(&pdev->dev, "Init parallel device failed.\n");
+                goto init_dev_fail;
         }
 
         dev_info(&pdev->dev, "probe done...\n");
 
         return 0;
 
-get_pdev_res_fail:
-        ctrl->destroy(ctrl);
+init_dev_fail:
+        ctrl->destroy(ctrl, pdev, &pl_parallel_class);
 create_dev_fail:
-        class_destroy(pl_parallel_class);
+get_pdev_res_fail:
+class_register_fail:
+        class_unregister(&pl_parallel_class);
 create_class_fail:
         cdev_del(pl_parallel_cdev);
 add_cdev_fail:
@@ -244,10 +242,9 @@ of_match_fail:
 
 static int pl_parallel_remove(struct platform_device *pdev)
 {
-        ctrl->destroy(ctrl);
-        device_destroy(pl_parallel_class, MKDEV(dev_major, 0));
-        class_unregister(pl_parallel_class);
-        class_destroy(pl_parallel_class);
+        ctrl->destroy(ctrl, pdev, &pl_parallel_class);
+        device_destroy(&pl_parallel_class, MKDEV(dev_major, 0));
+        class_unregister(&pl_parallel_class);
         unregister_chrdev_region(MKDEV(dev_major, 0), 1);
         return 0;
 }
