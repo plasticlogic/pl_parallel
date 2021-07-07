@@ -59,6 +59,37 @@ static ssize_t clk_freq_store(struct device *dev, struct device_attribute *attr,
 
 static DEVICE_ATTR_RW(clk_freq);
 
+// clk_div
+static ssize_t clk_div_show(struct device *dev,
+                            struct device_attribute *attr, char *buf)
+{
+        int clk_div;
+        struct am335x_ctrl *ctrl;
+
+        ctrl = timing_dev_to_ctrl(dev);
+
+        clk_div = am335x_lcdc_get_clkdiv(ctrl->reg_base_addr);
+        return sprintf(buf, "%d\n", clk_div);
+}
+
+static ssize_t clk_div_store(struct device *dev,
+                             struct device_attribute *attr,
+                             const char *buf, size_t count)
+{
+        int ret, clk_div;
+        struct am335x_ctrl *ctrl;
+
+        ctrl = timing_dev_to_ctrl(dev);
+        ret = sscanf(buf, "%d", &clk_div);
+        if(ret)
+                return ret;
+        
+        am335x_lcdc_set_clkdiv(ctrl->reg_base_addr, clk_div);
+        return count;
+}
+
+static DEVICE_ATTR_RW(clk_div);
+
 // w_su
 static ssize_t w_su_show(struct device *dev, 
                          struct device_attribute *attr, char *buf)
@@ -263,6 +294,7 @@ static DEVICE_ATTR_RW(cs_delay);
 
 static struct attribute *am335x_timings_attrs[] = {
         &dev_attr_clk_freq.attr,
+        &dev_attr_clk_div.attr,
         &dev_attr_w_su.attr,
         &dev_attr_w_strobe.attr,
         &dev_attr_w_hold.attr,
