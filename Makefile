@@ -2,7 +2,7 @@ obj-m := pl_parallel.o
 pl_parallel-objs += pl_parallel_module.o
 pl_parallel-objs += ctrl/am335x_ctrl.o
 
-EXTRA_CFLAGS += -I$(PWD)/include -std=gnu11 -Wall -O0
+EXTRA_CFLAGS += -I$(PWD)/include -std=gnu11 -Wall -O3
 KDIR ?= /lib/modules/$(shell uname -r)/build
 
 all:
