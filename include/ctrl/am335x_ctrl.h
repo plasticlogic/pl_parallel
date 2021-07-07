@@ -27,22 +27,15 @@
 
 struct am335x_ctrl {
         struct controller ctrl;
+        struct device timing_dev;
+        struct device pol_dev;
         struct resource *hw_res;
         struct clk *hw_clk;
         void __iomem *reg_base_addr;
+        short cmd;
 };
 #define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl)
 
-struct am335x_attribute {
-        struct attribute attr;
-        ssize_t (*show)(struct am335x_ctrl *ctrl, 
-                        struct am335x_attribute *attr, char *buf);
-        ssize_t (*store)(struct am335x_ctrl *ctrl,
-                         struct am335x_attribute *attr,
-                         const char *buf, size_t count);
-};
-#define to_am335x_attr(x) container_of(x, struct am335x_attribute, attr)
-
-struct controller *am335x_ctrl_create(struct class *c);
+struct controller *am335x_ctrl_create(void);
 
 #endif /* AM335X_CTRL_H */
