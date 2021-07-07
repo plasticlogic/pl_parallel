@@ -30,26 +30,22 @@
 static ssize_t clk_freq_show(struct device *dev, 
                              struct device_attribute *attr, char *buf)
 {
-        unsigned long clk_freq, clk_div, ret;
+        unsigned long clk_freq;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
         clk_freq = clk_get_rate(ctrl->hw_clk);
-        clk_div = am335x_lcdc_get_clkdiv(ctrl->reg_base_addr);
-        ret = clk_freq / clk_div;
-        return sprintf(buf, "%lu\n", ret);
+        return sprintf(buf, "%lu\n", clk_freq);
 }
 
 static ssize_t clk_freq_store(struct device *dev, struct device_attribute *attr,
                               const char *buf, size_t count)
 {
-        unsigned long clk_freq, clk_div, new_freq, ret;
+        unsigned long clk_freq, ret;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = kstrtoul(buf, 10, &new_freq);
+        ret = kstrtoul(buf, 10, &clk_freq);
         if(ret)
                 return ret;
         
-        clk_div = am335x_lcdc_get_clkdiv(ctrl->reg_base_addr);
-        clk_freq = new_freq * clk_div;
         ret = clk_set_rate(ctrl->hw_clk, clk_freq);
         if(ret)
                 return ret;
@@ -505,17 +501,17 @@ static void am335x_polarities_sysfs_unregister(struct am335x_ctrl *ctrl)
 ////////////////////////////////////////////////////////////////////////////////
 // Controller functions
 
-static const unsigned int init_hw_clk_freq = 100000000;
-static const int init_clk_div = 2;
+static const unsigned int init_hw_clk_freq = 500000000;
+static const int init_clk_div = 1;
 
 static struct am335x_lidd_timings init_timings = {
-        .w_setup = 1,
-        .w_strobe = 1,
-        .w_hold = 1,
-        .r_setup = 1,
-        .r_strobe = 1,
-        .r_hold = 1,
-        .ta = 1
+        .w_setup = 31,
+        .w_strobe = 63,
+        .w_hold = 15,
+        .r_setup = 31,
+        .r_strobe = 63,
+        .r_hold = 15,
+        .ta = 3
 };
 
 static struct am335x_lidd_sig_pol init_sig_pols = {
@@ -646,6 +642,7 @@ static void destroy(struct controller *ctrl, struct platform_device *pdev,
 static void write_addr(struct am335x_ctrl *ctrl, short addr)
 {
         //am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
+        pr_info("%s: Send command: 0x%X\n", THIS_MODULE->name, addr);
         am335x_set_lidd_addr(ctrl->reg_base_addr, LIDD_CS0, addr); //ctrl->cmd);
 }
 
@@ -653,6 +650,7 @@ static void write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
 {
         const short *tmp = data;
         do {
+                pr_info("%s: Send data: 0x%X\n", THIS_MODULE->name, *tmp);
                 am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, *tmp++);
         } while(--len > 0);
         //am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
@@ -674,15 +672,12 @@ static ssize_t read(struct controller *ctrl, short *buf, size_t len)
 static ssize_t write(struct controller *ctrl, const short *buf, size_t len)
 {
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
-        write_addr(c, *buf);
-        if(len > 0) {
-                if(!buf)
-                        return -ENODATA;
-        
-                write_data(c, buf + 1, len - 1);
+        write_addr(c, buf[0]);
+        if(len > 1) {        
+                write_data(c, &buf[1], len - 1);
                 return len;
         }
-        return 0;
+        return 1;
 }
 
 struct controller *am335x_ctrl_create(void)
