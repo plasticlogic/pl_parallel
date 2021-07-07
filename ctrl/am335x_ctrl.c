@@ -44,7 +44,7 @@ static ssize_t clk_freq_store(struct device *dev, struct device_attribute *attr,
         unsigned long clk_freq, clk_div, new_freq, ret;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%lu", &new_freq);
+        ret = kstrtoul(buf, 10, &new_freq);
         if(ret)
                 return ret;
         
@@ -80,7 +80,7 @@ static ssize_t clk_div_store(struct device *dev,
         struct am335x_ctrl *ctrl;
 
         ctrl = timing_dev_to_ctrl(dev);
-        ret = sscanf(buf, "%d", &clk_div);
+        ret = kstrtoint(buf, 10, &clk_div);
         if(ret)
                 return ret;
         
@@ -106,7 +106,7 @@ static ssize_t w_su_store(struct device *dev, struct device_attribute *attr,
         int ret, w_su;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &w_su);
+        ret = kstrtoint(buf, 10, &w_su);
         if(ret < 0) 
                 return ret;
 
@@ -133,7 +133,7 @@ static ssize_t w_strobe_store(struct device *dev, struct device_attribute *attr,
         int ret, w_strobe;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &w_strobe);
+        ret = kstrtoint(buf, 10, &w_strobe);
         if(ret < 0) 
                 return ret;
 
@@ -160,7 +160,7 @@ static ssize_t w_hold_store(struct device *dev, struct device_attribute *attr,
         int ret, w_hold;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &w_hold);
+        ret = kstrtoint(buf, 10, &w_hold);
         if(ret < 0) 
                 return ret;
 
@@ -187,7 +187,7 @@ static ssize_t r_su_store(struct device *dev, struct device_attribute *attr,
         int ret, r_su;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &r_su);
+        ret = kstrtoint(buf, 10, &r_su);
         if(ret < 0) 
                 return ret;
 
@@ -214,7 +214,7 @@ static ssize_t r_strobe_store(struct device *dev, struct device_attribute *attr,
         int ret, r_strobe;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &r_strobe);
+        ret = kstrtoint(buf, 10, &r_strobe);
         if(ret < 0) 
                 return ret;
 
@@ -241,7 +241,7 @@ static ssize_t r_hold_store(struct device *dev, struct device_attribute *attr,
         int ret, r_hold;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &r_hold);
+        ret = kstrtoint(buf, 10, &r_hold);
         if(ret < 0)
                 return ret;
 
@@ -268,7 +268,7 @@ static ssize_t cs_delay_store(struct device *dev, struct device_attribute *attr,
         int ret, cs_delay;
         struct am335x_ctrl *ctrl = timing_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &cs_delay);
+        ret = kstrtoint(buf, 10, &cs_delay);
         if(ret < 0) 
                 return ret;
 
@@ -341,7 +341,7 @@ static ssize_t cs0_e0_pol_store(struct device *dev,
         int ret, cs0_e0_pol;
         struct am335x_ctrl *ctrl = pol_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &cs0_e0_pol);
+        ret = kstrtoint(buf, 10, &cs0_e0_pol);
         if(ret < 0) 
                 return ret;
 
@@ -369,7 +369,7 @@ static ssize_t cs1_e1_pol_store(struct device *dev,
         int ret, cs1_e1_pol;
         struct am335x_ctrl *ctrl = pol_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &cs1_e1_pol);
+        ret = kstrtoint(buf, 10, &cs1_e1_pol);
         if(ret < 0) 
                 return ret;
 
@@ -397,7 +397,7 @@ static ssize_t ws_dir_pol_store(struct device *dev,
         int ret, ws_dir_pol;
         struct am335x_ctrl *ctrl = pol_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &ws_dir_pol);
+        ret = kstrtoint(buf, 10, &ws_dir_pol);
         if(ret < 0) 
                 return ret;
 
@@ -425,7 +425,7 @@ static ssize_t rs_en_pol_store(struct device *dev,
         int ret, rs_en_pol;
         struct am335x_ctrl *ctrl = pol_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &rs_en_pol);
+        ret = kstrtoint(buf, 10, &rs_en_pol);
         if(ret < 0) 
                 return ret;
 
@@ -453,7 +453,7 @@ static ssize_t ale_pol_store(struct device *dev,
         int ret, ale_pol;
         struct am335x_ctrl *ctrl = pol_dev_to_ctrl(dev);
 
-        ret = sscanf(buf, "%d\n", &ale_pol);
+        ret = kstrtoint(buf, 10, &ale_pol);
         if(ret < 0) 
                 return ret;
 
@@ -505,7 +505,7 @@ static void am335x_polarities_sysfs_unregister(struct am335x_ctrl *ctrl)
 ////////////////////////////////////////////////////////////////////////////////
 // Controller functions
 
-static const unsigned int init_hw_clk_freq = 2000000;
+static const unsigned int init_hw_clk_freq = 100000000;
 static const int init_clk_div = 2;
 
 static struct am335x_lidd_timings init_timings = {
