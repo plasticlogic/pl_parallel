@@ -778,52 +778,28 @@ static inline struct am335x_lidd_timings am335x_get_lidd_timings(
         return lt;
 }
 
-union am335x_lcdc_lidd_csx_addr_reg {
-        struct {
-                uint32_t adr_indx : 16;
-                uint32_t reserved : 16;
-        };
-        uint32_t reg_val;
-};
-
 static inline void am335x_set_lidd_addr(void __iomem *base_addr,
                                         enum lidd_device ld, int addr)
 {
-        union am335x_lcdc_lidd_csx_addr_reg reg;
-        reg.adr_indx = addr;
-        writel(reg.reg_val, base_addr + get_lidd_csx_addr_offs(ld));        
+        iowrite16(addr, base_addr + get_lidd_csx_addr_offs(ld));        
 }
 
 static inline short am335x_get_lidd_addr(void __iomem *base_addr, 
                                          enum lidd_device ld)
 {
-        union am335x_lcdc_lidd_csx_addr_reg reg;
-        reg.reg_val = readl(base_addr + get_lidd_csx_addr_offs(ld));
-        return reg.adr_indx;
+        return ioread16(base_addr + get_lidd_csx_addr_offs(ld));
 }
-
-union am335x_lcdc_lidd_csx_data_reg {
-        struct {
-                uint32_t data : 16;
-                uint32_t reserved : 16;
-        };
-        uint32_t reg_val;
-};
 
 static inline void am335x_set_lidd_data(void __iomem *base_addr,
                                         enum lidd_device ld, short data)
 {
-        union am335x_lcdc_lidd_csx_data_reg reg;
-        reg.data = data;
-        writel(reg.reg_val, base_addr + get_lidd_csx_data_offs(ld));
+        iowrite16(data, base_addr + get_lidd_csx_data_offs(ld));
 }
 
 static inline short am335x_get_lidd_data(void __iomem *base_addr,
                                          enum lidd_device ld)
 {
-        union am335x_lcdc_lidd_csx_data_reg reg;
-        reg.reg_val = readl(base_addr + get_lidd_csx_data_offs(ld));
-        return reg.data;
+        return ioread16(base_addr + get_lidd_csx_data_offs(ld));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
