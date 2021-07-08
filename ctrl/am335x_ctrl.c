@@ -501,8 +501,8 @@ static void am335x_polarities_sysfs_unregister(struct am335x_ctrl *ctrl)
 ////////////////////////////////////////////////////////////////////////////////
 // Controller functions
 
-static const unsigned int init_hw_clk_freq = 500000000;
-static const int init_clk_div = 16;
+static const unsigned int init_hw_clk_freq = 100000000;
+static const int init_clk_div = 6;
 
 static struct am335x_lidd_timings init_timings = {
         .w_setup = 31,
@@ -544,7 +544,7 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
                 goto req_hw_mem_fail;
         }
 
-        am_ctrl->reg_base_addr = devm_ioremap(&pdev->dev, 
+        am_ctrl->reg_base_addr = devm_ioremap_nocache(&pdev->dev, 
                                               am_ctrl->hw_res->start, 
                                               resource_size(am_ctrl->hw_res));
         if(!am_ctrl->reg_base_addr) {
@@ -592,9 +592,11 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
 
         // set signal polarities
         am335x_set_lidd_pols(am_ctrl->reg_base_addr, &init_sig_pols);
+
+        am335x_lcdc_set_ctrl_mode(am_ctrl->reg_base_addr, LIDD_MODE);
         
         // set lidd mode
-        am335x_set_lidd_mode(am_ctrl->reg_base_addr, ASYNC_MPU80);
+        am335x_set_lidd_mode(am_ctrl->reg_base_addr, SYNC_MPU80);
         
         // set timings
         am335x_set_lidd_timings(am_ctrl->reg_base_addr, LIDD_CS0, &init_timings);
@@ -663,7 +665,7 @@ static ssize_t read(struct controller *ctrl, short *buf, size_t len)
         int i;
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
         for(i = 0; i < len; i++) {
-                *buf++ = am335x_get_lidd_data(c->reg_base_addr, LIDD_CS0);
+                buf[i] = am335x_get_lidd_data(c->reg_base_addr, LIDD_CS0);
         }
         return len;
 }
