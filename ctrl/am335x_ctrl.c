@@ -629,7 +629,6 @@ static void destroy(struct controller *ctrl, struct platform_device *pdev,
                     struct class *c)
 {
         struct am335x_ctrl *am_ctrl = to_am335x_ctrl(ctrl);
-        //gpiod_put(ctrl->ctrl.hrdy_gpio);
         devm_clk_put(&pdev->dev, am_ctrl->hw_clk);
         devm_iounmap(&pdev->dev, am_ctrl->reg_base_addr);
         devm_release_mem_region(&pdev->dev, am_ctrl->hw_res->start,
@@ -643,7 +642,7 @@ static void write_addr(struct am335x_ctrl *ctrl, short addr)
 {
         //am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
         pr_info("%s: Send command: 0x%X\n", THIS_MODULE->name, addr);
-        am335x_set_lidd_addr(ctrl->reg_base_addr, LIDD_CS0, addr); //ctrl->cmd);
+        am335x_set_lidd_addr(ctrl->reg_base_addr, LIDD_CS0, addr);
 }
 
 static void write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
