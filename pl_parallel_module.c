@@ -37,6 +37,8 @@ static dev_t cdev_dev_t = 0;
 ////////////////////////////////////////////////////////////////////////////////
 // Cdev
 
+static short cmd;
+
 static int pl_parallel_open(struct inode *inode, struct file *file)
 {
         return 0;
@@ -53,10 +55,10 @@ static ssize_t pl_parallel_read(struct file *file, char __user *data,
         int ret;
         short *read_buffer = kzalloc(size, GFP_KERNEL);
 
-        pr_info("%s: Read from cdev...\n", THIS_MODULE->name);
         if(!read_buffer)
                 return -ENOMEM;
 
+        ret = ctrl->write(ctrl, &cmd, 1);
         ret = ctrl->read(ctrl, read_buffer, size / 2);
         if(ret < 0) {
                 goto end_read;
@@ -72,10 +74,12 @@ end_read:
 static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                                  size_t size, loff_t *offset)
 {
-        short* data_buf;
+        short *data_buf;
         int ret;
 
-        pr_info("%s: Write to cdev...\n", THIS_MODULE->name);
+        if(size < 2)
+                return -EINVAL;
+
         data_buf = kzalloc(size, GFP_DMA);
         if(!data_buf) {
                 pr_err("%s: Allocate buffer failed.\n", THIS_MODULE->name);
@@ -88,8 +92,12 @@ static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                 pr_err("%s: Copy data from user space failed.\n", THIS_MODULE->name);
                 goto copy_user_data_fail;
         }
+
+        if(size == 2 && data_buf[0] != 0) {
+                cmd = data_buf[0];
+        } else
+                ret = ctrl->write(ctrl, data_buf, size / 2);
         
-        ret = ctrl->write(ctrl, data_buf, size / 2);
         kfree(data_buf);
         return size;
 
