@@ -85,23 +85,23 @@
                     BONE_P8_28 (PIN_OUTPUT | MUX_MODE0) /*0x0E8 ((1 << 3) | 0) /* P8.28 - LCD_PCLK -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
                     BONE_P8_29 (PIN_OUTPUT | MUX_MODE0) /*0x0E4 ((1 << 3) | 0) /* P8.29 - LCD_HSYNC -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
                     BONE_P8_30 (PIN_OUTPUT | MUX_MODE0) /*0x0EC ((1 << 3) | 0) /* P8.30 - LCD_AC_BIAS_EN -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P8_31 (PIN_OUTPUT | MUX_MODE0) /* LDC_DATA_14 */
-                    BONE_P8_32 (PIN_OUTPUT | MUX_MODE0) /* LCD_DATA_15 */
-                    BONE_P8_33 (PIN_OUTPUT | MUX_MODE0) /* LCD_DATA_13 */
-                    BONE_P8_34 (PIN_OUTPUT | MUX_MODE0) /* LCD_DATA_11 */
-                    BONE_P8_35 (PIN_OUTPUT | MUX_MODE0) /* LCD_DATA_12 */
-                    BONE_P8_36 (PIN_OUTPUT | MUX_MODE0) /* LCD_DATA_10 */
-                    BONE_P8_37 (PIN_OUTPUT | MUX_MODE0) /* LCD_DATA_8 */
-                    BONE_P8_38 (PIN_OUTPUT | MUX_MODE0) /* LCD_DATA_9 */
-                    BONE_P8_39 (PIN_OUTPUT | MUX_MODE0) /*0x0B8 ((1 << 3) | 0) /* P8.39 - LCD_DATA_6 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P8_40 (PIN_OUTPUT | MUX_MODE0) /*0x0BC ((1 << 3) | 0) /* P8.40 - LCD_DATA_7 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P8_41 (PIN_OUTPUT | MUX_MODE0) /*0x0B0 ((1 << 3) | 0) /* P8.41 - LCD_DATA_4 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P8_42 (PIN_OUTPUT | MUX_MODE0) /*0x0B4 ((1 << 3) | 0) /* P8.42 - LCD_DATA_5 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P8_43 (PIN_OUTPUT | MUX_MODE0) /*0x0AB ((1 << 3) | 0) /* P8.43 - LCD_DATA_2 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P8_44 (PIN_OUTPUT | MUX_MODE0) /*0x0AC ((1 << 3) | 0) /* P8.44 - LCD_DATA_3 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P8_45 (PIN_OUTPUT | MUX_MODE0) /*0x0A0 ((1 << 3) | 0) /* P8.45 - LCD_DATA_0 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P8_46 (PIN_OUTPUT | MUX_MODE0) /*0x0A4 ((1 << 3) | 0) /* P8.46 - LCD_DATA_1 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
-                    BONE_P9_27 (PIN_INPUT  | MUX_MODE7)
+                    BONE_P8_31 (PIN_INPUT | MUX_MODE0) /* LDC_DATA_14 */
+                    BONE_P8_32 (PIN_INPUT | MUX_MODE0) /* LCD_DATA_15 */
+                    BONE_P8_33 (PIN_INPUT | MUX_MODE0) /* LCD_DATA_13 */
+                    BONE_P8_34 (PIN_INPUT | MUX_MODE0) /* LCD_DATA_11 */
+                    BONE_P8_35 (PIN_INPUT | MUX_MODE0) /* LCD_DATA_12 */
+                    BONE_P8_36 (PIN_INPUT | MUX_MODE0) /* LCD_DATA_10 */
+                    BONE_P8_37 (PIN_INPUT | MUX_MODE0) /* LCD_DATA_8 */
+                    BONE_P8_38 (PIN_INPUT | MUX_MODE0) /* LCD_DATA_9 */
+                    BONE_P8_39 (PIN_INPUT | MUX_MODE0) /*0x0B8 ((1 << 3) | 0) /* P8.39 - LCD_DATA_6 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
+                    BONE_P8_40 (PIN_INPUT | MUX_MODE0) /*0x0BC ((1 << 3) | 0) /* P8.40 - LCD_DATA_7 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
+                    BONE_P8_41 (PIN_INPUT | MUX_MODE0) /*0x0B0 ((1 << 3) | 0) /* P8.41 - LCD_DATA_4 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
+                    BONE_P8_42 (PIN_INPUT | MUX_MODE0) /*0x0B4 ((1 << 3) | 0) /* P8.42 - LCD_DATA_5 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
+                    BONE_P8_43 (PIN_INPUT | MUX_MODE0) /*0x0AB ((1 << 3) | 0) /* P8.43 - LCD_DATA_2 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
+                    BONE_P8_44 (PIN_INPUT | MUX_MODE0) /*0x0AC ((1 << 3) | 0) /* P8.44 - LCD_DATA_3 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
+                    BONE_P8_45 (PIN_INPUT | MUX_MODE0) /*0x0A0 ((1 << 3) | 0) /* P8.45 - LCD_DATA_0 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
+                    BONE_P8_46 (PIN_INPUT | MUX_MODE0) /*0x0A4 ((1 << 3) | 0) /* P8.46 - LCD_DATA_1 -> fast slew, PUPD disabled, Receiver disabled, Mode 0 */
+                    BONE_P9_27 (PIN_INPUT | MUX_MODE7)
                 >;
             };
         };
