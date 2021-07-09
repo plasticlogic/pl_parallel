@@ -501,17 +501,17 @@ static void am335x_polarities_sysfs_unregister(struct am335x_ctrl *ctrl)
 ////////////////////////////////////////////////////////////////////////////////
 // Controller functions
 
-static const unsigned int init_hw_clk_freq = 100000000;
+static const unsigned int init_hw_clk_freq = 200000000;
 static const int init_clk_div = 6;
 
 static struct am335x_lidd_timings init_timings = {
-        .w_setup = 31,
-        .w_strobe = 63,
+        .w_setup = 7,
+        .w_strobe = 15,
         .w_hold = 15,
-        .r_setup = 31,
-        .r_strobe = 63,
-        .r_hold = 15,
-        .ta = 3
+        .r_setup = 7,
+        .r_strobe = 15,
+        .r_hold = 3,
+        .ta = 1
 };
 
 static struct am335x_lidd_sig_pol init_sig_pols = {
@@ -642,8 +642,6 @@ static void destroy(struct controller *ctrl, struct platform_device *pdev,
 
 static void write_addr(struct am335x_ctrl *ctrl, short addr)
 {
-        //am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
-        pr_info("%s: Send command: 0x%X\n", THIS_MODULE->name, addr);
         am335x_set_lidd_addr(ctrl->reg_base_addr, LIDD_CS0, addr);
 }
 
@@ -651,13 +649,8 @@ static void write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
 {
         const short *tmp = data;
         do {
-                pr_info("%s: Send data: 0x%X\n", THIS_MODULE->name, *tmp);
                 am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, *tmp++);
         } while(--len > 0);
-        //am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
-        //am335x_set_lcddma_fbx_base_addr(ctrl->reg_base_addr, FB0, data);
-        //am335x_set_lcddma_fbx_ceil_addr(ctrl->reg_base_addr, FB0, data + len - 1);
-        //am335x_set_lidd_dma_en(ctrl->reg_base_addr, 1);
 }
 
 static ssize_t read(struct controller *ctrl, short *buf, size_t len)
