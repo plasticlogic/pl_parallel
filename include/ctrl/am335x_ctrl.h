@@ -20,6 +20,7 @@
 #include <linux/io.h>
 #include <linux/string.h>
 #include <linux/platform_device.h>
+#include <linux/gpio/consumer.h>
 
 #include <ctrl/controller.h>
 
@@ -31,6 +32,7 @@ struct am335x_ctrl {
         struct device pol_dev;
         struct resource *hw_res;
         struct clk *hw_clk;
+        struct gpio_desc *hrdy_gpio;
         void __iomem *reg_base_addr;
 };
 #define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl)

@@ -12,11 +12,14 @@
 #include <linux/kernel.h>
 #include <linux/types.h>
 #include <linux/kdev_t.h>
+#include <linux/wait.h>
+#include <linux/jiffies.h>
 #include <ctrl/am335x_ctrl.h>
 #include <ctrl/am335x_regs.h>
 
 #define TIMING_DEVICE_NAME      "timings"
 #define POLARITY_DEVICE_NAME    "polarities"
+#define TIMEOUT_MSECS           1000
 
 #define timing_dev_to_ctrl(tdev) container_of(tdev, struct am335x_ctrl, timing_dev)
 #define pol_dev_to_ctrl(pdev) container_of(pdev, struct am335x_ctrl, pol_dev)
@@ -522,6 +525,15 @@ static struct am335x_lidd_sig_pol init_sig_pols = {
         .cs1_e1_pol = NO_INVERT,
 };
 
+static inline int wait_hrdy_timeout(struct am335x_ctrl *ctrl) {
+        unsigned long end_jiffies = jiffies + msecs_to_jiffies(TIMEOUT_MSECS);
+        do {
+                if(gpiod_get_value(ctrl->hrdy_gpio))
+                        return 0;
+        } while(jiffies < end_jiffies);
+        return -ETIME;
+}
+
 static int init(struct controller *ctrl, struct platform_device *pdev, 
                 struct class *c)
 {
@@ -573,6 +585,13 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
         if(ret)
                 goto clk_en_fail;
 
+        // request HRDY GPIO
+        am_ctrl->hrdy_gpio = devm_gpiod_get(&pdev->dev, HRDY_GPIO_ID, GPIOD_IN);
+        if(IS_ERR(am_ctrl->hrdy_gpio)) {
+                ret = PTR_ERR(am_ctrl->hrdy_gpio);
+                goto hrdy_gpio_req_fail;
+        }
+
         // add object to sysfs
         ret = am335x_timings_sysfs_register(am_ctrl, c);
         if(ret)
@@ -613,6 +632,8 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
 polarities_add_fail:
         am335x_timings_sysfs_unregister(am_ctrl);
 timings_add_fail:
+        devm_gpiod_put(&pdev->dev, am_ctrl->hrdy_gpio);
+hrdy_gpio_req_fail:
 clk_en_fail:
 clk_set_rate_fail:
 clk_prep_fail:
@@ -631,6 +652,7 @@ static void destroy(struct controller *ctrl, struct platform_device *pdev,
                     struct class *c)
 {
         struct am335x_ctrl *am_ctrl = to_am335x_ctrl(ctrl);
+        devm_gpiod_put(&pdev->dev, am_ctrl->hrdy_gpio);
         devm_clk_put(&pdev->dev, am_ctrl->hw_clk);
         devm_iounmap(&pdev->dev, am_ctrl->reg_base_addr);
         devm_release_mem_region(&pdev->dev, am_ctrl->hw_res->start,
@@ -645,19 +667,31 @@ static void write_addr(struct am335x_ctrl *ctrl, short addr)
         am335x_set_lidd_addr(ctrl->reg_base_addr, LIDD_CS0, addr);
 }
 
-static void write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
+static int write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
 {
+        int ret;
         const short *tmp = data;
         do {
+                ret = wait_hrdy_timeout(ctrl);
+                if(ret) {
+                        pr_warn("%s: Write I8080 timeout!\n", THIS_MODULE->name);
+                        return -EIO;
+                }
                 am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, *tmp++);
         } while(--len > 0);
+        return 0;
 }
 
 static ssize_t read(struct controller *ctrl, short *buf, size_t len)
 {
-        int i;
+        int i, ret;
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
         for(i = 0; i < len; i++) {
+                ret = wait_hrdy_timeout(c);
+                if(ret) {
+                        pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
+                        return -EIO;
+                }
                 buf[i] = am335x_get_lidd_data(c->reg_base_addr, LIDD_CS0);
         }
         return len;
@@ -667,7 +701,7 @@ static ssize_t write(struct controller *ctrl, const short *buf, size_t len)
 {
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
         write_addr(c, buf[0]);
-        if(len > 1) {        
+        if(len > 1) {
                 write_data(c, &buf[1], len - 1);
                 return len;
         }
