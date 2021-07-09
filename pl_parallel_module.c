@@ -37,8 +37,6 @@ static dev_t cdev_dev_t = 0;
 ////////////////////////////////////////////////////////////////////////////////
 // Cdev
 
-static short cmd;
-
 static int pl_parallel_open(struct inode *inode, struct file *file)
 {
         return 0;
@@ -54,17 +52,19 @@ static ssize_t pl_parallel_read(struct file *file, char __user *data,
 {
         int ret;
         short *read_buffer = kzalloc(size, GFP_KERNEL);
-
         if(!read_buffer)
                 return -ENOMEM;
 
-        ret = ctrl->write(ctrl, &cmd, 1);
         ret = ctrl->read(ctrl, read_buffer, size / 2);
         if(ret < 0) {
                 goto end_read;
         }
 
         ret = copy_to_user(data, read_buffer, size);
+        if(ret)
+                return -EIO;
+
+        ret = size;
 
 end_read:
         kfree(read_buffer);
@@ -93,10 +93,7 @@ static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                 goto copy_user_data_fail;
         }
 
-        if(size == 2 && data_buf[0] != 0) {
-                cmd = data_buf[0];
-        } else
-                ret = ctrl->write(ctrl, data_buf, size / 2);
+        ret = ctrl->write(ctrl, data_buf, size / 2);
         
         kfree(data_buf);
         return size;
