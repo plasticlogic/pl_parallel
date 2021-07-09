@@ -501,8 +501,8 @@ static void am335x_polarities_sysfs_unregister(struct am335x_ctrl *ctrl)
 ////////////////////////////////////////////////////////////////////////////////
 // Controller functions
 
-static const unsigned int init_hw_clk_freq = 200000000;
-static const int init_clk_div = 6;
+static const unsigned int init_hw_clk_freq = 100000000;
+static const int init_clk_div = 16;
 
 static struct am335x_lidd_timings init_timings = {
         .w_setup = 7,
