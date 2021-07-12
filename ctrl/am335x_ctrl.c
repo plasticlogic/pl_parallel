@@ -673,6 +673,7 @@ static int write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
 {
         int ret;
         const short *tmp = data;
+        ret = 0;
         do {
 #               ifndef WRITE_DATA_BURST
                 ret = wait_hrdy_timeout(ctrl);
@@ -690,6 +691,7 @@ static ssize_t read(struct controller *ctrl, short *buf, size_t len)
 {
         int i, ret;
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
+        ret = 0;
         wait_hrdy_timeout(c);
         for(i = 0; i < len; i++) {
 #               ifndef READ_DATA_BURST
