@@ -24,7 +24,7 @@
 #define timing_dev_to_ctrl(tdev) container_of(tdev, struct am335x_ctrl, timing_dev)
 #define pol_dev_to_ctrl(pdev) container_of(pdev, struct am335x_ctrl, pol_dev)
 
-#undef READ_DATA_BURST
+#undef WRITE_DATA_BURST
 
 ////////////////////////////////////////////////////////////////////////////////
 // SysFS implementations
@@ -676,10 +676,12 @@ static int write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
         ret = 0;
         do {
 #               ifndef WRITE_DATA_BURST
-                ret = wait_hrdy_timeout(ctrl);
-                if(ret) {
-                        pr_warn("%s: Write I8080 timeout!\n", THIS_MODULE->name);
-                        return -EIO;
+                if(!BURST_EN) {
+                        ret = wait_hrdy_timeout(ctrl);
+                        if(ret) {
+                                pr_warn("%s: Write I8080 timeout!\n", THIS_MODULE->name);
+                                return -EIO;
+                        }
                 }
 #               endif
                 am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, *tmp++);
@@ -691,16 +693,20 @@ static ssize_t read(struct controller *ctrl, short *buf, size_t len)
 {
         int i, ret;
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
-        ret = 0;
-        wait_hrdy_timeout(c);
+
+        ret = wait_hrdy_timeout(c);
+        if(ret) {
+                pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
+                return -EIO;
+        }
+        am335x_get_lidd_data(c->reg_base_addr, LIDD_CS0);
+
         for(i = 0; i < len; i++) {
-#               ifndef READ_DATA_BURST
                 ret = wait_hrdy_timeout(c);
                 if(ret) {
                         pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
                         return -EIO;
                 }
-#               endif
                 buf[i] = am335x_get_lidd_data(c->reg_base_addr, LIDD_CS0);
         }
         return len;
@@ -708,11 +714,20 @@ static ssize_t read(struct controller *ctrl, short *buf, size_t len)
 
 static ssize_t write(struct controller *ctrl, const short *buf, size_t len)
 {
+        int ret;
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
-        wait_hrdy_timeout(c);
+        ret = wait_hrdy_timeout(c);
+        if(ret) {
+                pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
+                return -EIO;
+        }
         write_addr(c, buf[0]);
         if(len > 1) {
-                wait_hrdy_timeout(c);
+                ret = wait_hrdy_timeout(c);
+                if(ret) {
+                        pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
+                        return -EIO;
+                }
                 write_data(c, &buf[1], len - 1);
                 return len;
         }
