@@ -25,6 +25,8 @@
 #include <ctrl/controller.h>
 
 #define AM335X_TCON_CLK_IDENTIFIER      "l4_per_cm:clk:0004:0"
+#define WRITE_DATA_BURST
+#define READ_DATA_BURST
 
 struct am335x_ctrl {
         struct controller ctrl;
