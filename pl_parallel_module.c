@@ -155,10 +155,44 @@ static struct controller *get_controller_by_dev_id(struct platform_device *pdev,
 ////////////////////////////////////////////////////////////////////////////////
 // Class
 
+static ssize_t burst_en_show(struct class *c, struct class_attribute *attr, 
+                             char *buffer)
+{
+        if(!ctrl)
+                return -ENODEV;
+        else
+                return sprintf(buffer, "%d\n", ctrl->burst_en);
+}
+
+static ssize_t burst_en_store(struct class *c, struct class_attribute *attr, 
+                              const char *buffer, size_t len)
+{
+        int ret;
+        if(!ctrl)
+                return -ENODEV;
+        
+        ret = kstrtoint(buffer, 10, &ctrl->burst_en);
+
+        if(ret) {
+                ctrl->burst_en = 0;
+                return ret;
+        }
+        return len;
+}
+
+CLASS_ATTR_RW(burst_en);
+
+static struct attribute *pl_par_attrs[] = {
+        &class_attr_burst_en.attr,
+        NULL,
+};
+
+ATTRIBUTE_GROUPS(pl_par);
+
 static struct class pl_parallel_class = {
         .name = CLASS_NAME,
         .owner = THIS_MODULE,
-        .class_groups = NULL,
+        .class_groups = pl_par_groups,
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -290,6 +324,6 @@ module_init(pl_parallel_init);
 module_exit(pl_parallel_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_VERSION("v1.1.1");
+MODULE_VERSION("v1.2.0");
 MODULE_DESCRIPTION("Parallel driver for PL Germany devices.");
 MODULE_AUTHOR("Lars Görner <lars.goerner@plasticlogic.com>");
