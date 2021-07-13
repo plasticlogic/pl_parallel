@@ -954,4 +954,39 @@ static inline void am335x_set_lcddma_fbx_ceil_addr(void __iomem *base_addr,
         writel(reg.reg_val, base_addr + get_lcddma_fbx_base_offs(fb));
 }
 
+union am335x_lcdc_lcddma_irqstatus_raw_reg {
+        struct {
+                uint32_t done_raw_set : 1;
+                uint32_t recurrent_raster_done_raw_set : 1;
+                uint32_t sync_raw_set : 1;
+                uint32_t acb_raw_set : 1;
+                uint32_t reserved1 : 1;
+                uint32_t fuf_raw_set : 1;
+                uint32_t pl_raw_set : 1;
+                uint32_t reserved2 : 1;
+                uint32_t eof0_raw_set : 1;
+                uint32_t eof1_raw_set : 1;
+                uint32_t reserved3 : 22;
+        };
+        uint32_t reg_val;
+};
+
+static inline int am335x_get_lcddma_fbx_eof_raw_irq(void __iomem *base_addr,
+                                                    enum dma_framebuffer fb)
+{
+        union am335x_lcdc_lcddma_irqstatus_raw_reg reg;
+        reg.reg_val = readl(base_addr + AM335X_LCDC_IRQSTATUS_RAW_OFFS);
+        if(fb == FB0)
+                return reg.eof0_raw_set;
+        else
+                return reg.eof1_raw_set;
+}
+
+static inline int am335x_get_lcddma_fbx_done_raw_irq(void __iomem *base_addr)
+{
+        union am335x_lcdc_lcddma_irqstatus_raw_reg reg;
+        reg.reg_val = readl(base_addr + AM335X_LCDC_IRQSTATUS_RAW_OFFS);
+        return reg.done_raw_set;
+}
+
 #endif /* AM335X_REGS_H */
