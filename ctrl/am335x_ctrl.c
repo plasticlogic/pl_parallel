@@ -510,13 +510,13 @@ static const unsigned int init_hw_clk_freq = 300000000;
 static const int init_clk_div = 1;
 
 static struct am335x_lidd_timings init_timings = {
-        .w_setup = 7,
-        .w_strobe = 15,
-        .w_hold = 15,
+        .w_setup = 1,
+        .w_strobe = 7,
+        .w_hold = 1,
         .r_setup = 7,
         .r_strobe = 15,
-        .r_hold = 3,
-        .ta = 1
+        .r_hold = 15,
+        .ta = 2
 };
 
 static struct am335x_lidd_sig_pol init_sig_pols = {
@@ -531,6 +531,15 @@ static inline int wait_hrdy_timeout(struct am335x_ctrl *ctrl) {
         unsigned long end_jiffies = jiffies + msecs_to_jiffies(TIMEOUT_MSECS);
         do {
                 if(gpiod_get_value(ctrl->hrdy_gpio))
+                        return 0;
+        } while(jiffies < end_jiffies);
+        return -ETIME;
+}
+
+static inline int wait_dma_timeout(struct am335x_ctrl *ctrl) {
+        unsigned long end_jiffies = jiffies + msecs_to_jiffies(10000);
+        do {
+                if(am335x_get_lcddma_fbx_done_raw_irq(ctrl->reg_base_addr))
                         return 0;
         } while(jiffies < end_jiffies);
         return -ETIME;
@@ -671,23 +680,39 @@ static void write_addr(struct am335x_ctrl *ctrl, short addr)
 
 static int write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
 {
-        int ret;
-        const short *tmp = data;
-        ret = 0;
-        do {
-#               ifndef WRITE_DATA_BURST
-                if(!BURST_EN) {
-                        ret = wait_hrdy_timeout(ctrl);
-                        if(ret) {
-                                pr_warn("%s: Write I8080 timeout!\n", THIS_MODULE->name);
-                                return -EIO;
-                        }
+        int ret, i;
+        for(i = 0; i < len; i++) {
+                am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, data[i]);
+                ret = wait_hrdy_timeout(ctrl);
+                if(ret) {
+                        pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
+                        return -EIO;
                 }
-#               endif
-                am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, *tmp++);
-        } while(--len > 0);
+        }
+
         return 0;
 }
+
+static int write_data_no_hrdy(struct am335x_ctrl *ctrl, const short *data, size_t len)
+{
+        int i;
+        for(i = 0; i < len; i++) {
+                am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, data[i]);
+        }
+
+        return 0;
+}
+
+//static int write_data_dma(struct am335x_ctrl *ctrl, const short *data, size_t len)
+//{
+//        int ret;
+//        am335x_set_lcddma_fbx_base_addr(ctrl->reg_base_addr, FB0, data);
+//        am335x_set_lcddma_fbx_ceil_addr(ctrl->reg_base_addr, FB0, data + len);
+//        am335x_set_lidd_dma_en(ctrl->reg_base_addr, 1);
+//        ret = wait_dma_timeout(ctrl);
+//        am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
+//        return ret;
+//}
 
 static ssize_t read(struct controller *ctrl, short *buf, size_t len)
 {
@@ -728,7 +753,16 @@ static ssize_t write(struct controller *ctrl, const short *buf, size_t len)
                         pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
                         return -EIO;
                 }
-                write_data(c, &buf[1], len - 1);
+
+                if(ctrl->burst_en)
+                        ret = write_data_no_hrdy(c, &buf[1], len - 1);
+                else
+                        ret = write_data(c, &buf[1], len - 1);
+
+                if(ret) {
+                        pr_warn("%s: Write data failed!\n", THIS_MODULE->name);
+                        return ret;
+                }
                 return len;
         }
         return 1;
