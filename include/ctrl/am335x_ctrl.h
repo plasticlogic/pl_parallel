@@ -27,8 +27,6 @@
 #define AM335X_TCON_CLK_IDENTIFIER      "l4_per_cm:clk:0004:0"
 #define WRITE_DATA_BURST
 
-static int BURST_EN = 0;
-
 struct am335x_ctrl {
         struct controller ctrl;
         struct device timing_dev;
