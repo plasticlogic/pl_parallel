@@ -544,7 +544,7 @@ static inline void am335x_set_lidd_dma_en(void __iomem *base_addr,
 {
         union am335x_lcdc_lidd_ctrl_reg reg;
         reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.ale_pol = enable;
+        reg.lidd_dma_en = enable;
         writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
@@ -552,7 +552,7 @@ static inline int am335x_get_lidd_dma_en(void __iomem *base_addr)
 {
         union am335x_lcdc_lidd_ctrl_reg reg;
         reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.ale_pol;
+        return reg.lidd_dma_en;
 }
 
 static inline void am335x_set_dma_cs0_cs1(void __iomem *base_addr, 
