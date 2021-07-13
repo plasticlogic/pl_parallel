@@ -27,6 +27,7 @@ struct controller {
         ssize_t (*write)(struct controller *ctrl, const short *buf, size_t len);
         void (*destroy)(struct controller *ctrl, struct platform_device *pdev,
                         struct class *c);
+        int burst_en;
 };
 
 #endif /* CONTROLLER_H */
