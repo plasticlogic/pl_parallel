@@ -23,6 +23,7 @@
 
 #define timing_dev_to_ctrl(tdev) container_of(tdev, struct am335x_ctrl, timing_dev)
 #define pol_dev_to_ctrl(pdev) container_of(pdev, struct am335x_ctrl, pol_dev)
+#define param_clamp(p, l, h) (p > h ? h : p < l ? l : p)
 
 #undef WRITE_DATA_BURST
 
@@ -50,6 +51,8 @@ static ssize_t clk_freq_store(struct device *dev, struct device_attribute *attr,
         ret = kstrtoul(buf, 10, &clk_freq);
         if(ret)
                 return ret;
+
+        clk_freq = param_clamp(clk_freq, 25000000ul, 300000000ul);
         
         ret = clk_set_rate(ctrl->hw_clk, clk_freq);
         if(ret)
@@ -84,6 +87,8 @@ static ssize_t clk_div_store(struct device *dev,
         ret = kstrtoint(buf, 10, &clk_div);
         if(ret)
                 return ret;
+
+        clk_div = param_clamp(clk_div, 1, 255);
         
         am335x_lcdc_set_clkdiv(ctrl->reg_base_addr, clk_div);
         return count;
@@ -110,6 +115,8 @@ static ssize_t w_su_store(struct device *dev, struct device_attribute *attr,
         ret = kstrtoint(buf, 10, &w_su);
         if(ret < 0) 
                 return ret;
+
+        w_su = param_clamp(w_su, 0, 31);
 
         am335x_set_lidd_w_su(ctrl->reg_base_addr, LIDD_CS0, w_su);
         return count;
@@ -138,6 +145,8 @@ static ssize_t w_strobe_store(struct device *dev, struct device_attribute *attr,
         if(ret < 0) 
                 return ret;
 
+        w_strobe = param_clamp(w_strobe, 1, 63);
+
         am335x_set_lidd_w_strobe(ctrl->reg_base_addr, LIDD_CS0, w_strobe);
         return count;
 }
@@ -164,6 +173,8 @@ static ssize_t w_hold_store(struct device *dev, struct device_attribute *attr,
         ret = kstrtoint(buf, 10, &w_hold);
         if(ret < 0) 
                 return ret;
+
+        w_hold = param_clamp(w_hold, 1, 15);
 
         am335x_set_lidd_w_hold(ctrl->reg_base_addr, LIDD_CS0, w_hold);
         return count;
@@ -192,6 +203,8 @@ static ssize_t r_su_store(struct device *dev, struct device_attribute *attr,
         if(ret < 0) 
                 return ret;
 
+        r_su = param_clamp(r_su, 0, 31);
+
         am335x_set_lidd_r_su(ctrl->reg_base_addr, LIDD_CS0, r_su);
         return count;
 }
@@ -218,6 +231,8 @@ static ssize_t r_strobe_store(struct device *dev, struct device_attribute *attr,
         ret = kstrtoint(buf, 10, &r_strobe);
         if(ret < 0) 
                 return ret;
+
+        r_strobe = param_clamp(r_strobe, 1, 63);
 
         am335x_set_lidd_r_strobe(ctrl->reg_base_addr, LIDD_CS0, r_strobe);
         return count;
@@ -246,6 +261,8 @@ static ssize_t r_hold_store(struct device *dev, struct device_attribute *attr,
         if(ret < 0)
                 return ret;
 
+        r_hold = param_clamp(r_hold, 1, 15);
+
         am335x_set_lidd_r_hold(ctrl->reg_base_addr, LIDD_CS0, r_hold);
         return count;
 }
@@ -272,6 +289,8 @@ static ssize_t cs_delay_store(struct device *dev, struct device_attribute *attr,
         ret = kstrtoint(buf, 10, &cs_delay);
         if(ret < 0) 
                 return ret;
+
+        cs_delay = param_clamp(cs_delay, 0, 3);
 
         am335x_set_lidd_ta(ctrl->reg_base_addr, LIDD_CS0, cs_delay);
         return count;
