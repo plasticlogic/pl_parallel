@@ -556,7 +556,7 @@ static inline int wait_hrdy_timeout(struct am335x_ctrl *ctrl) {
 }
 
 static inline int wait_dma_timeout(struct am335x_ctrl *ctrl) {
-        unsigned long end_jiffies = jiffies + msecs_to_jiffies(10000);
+        unsigned long end_jiffies = jiffies + msecs_to_jiffies(1000);
         do {
                 if(am335x_get_lcddma_fbx_done_raw_irq(ctrl->reg_base_addr))
                         return 0;
@@ -714,24 +714,27 @@ static int write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
 
 static int write_data_no_hrdy(struct am335x_ctrl *ctrl, const short *data, size_t len)
 {
+#       ifdef BURST_DMA
+
+        int ret;
+        am335x_set_lcddma_fbx_base_addr(ctrl->reg_base_addr, FB0, data);
+        am335x_set_lcddma_fbx_ceil_addr(ctrl->reg_base_addr, FB0, data + len);
+        am335x_set_lidd_dma_en(ctrl->reg_base_addr, 1);
+        ret = wait_dma_timeout(ctrl);
+        am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
+        return ret;
+
+#       else
+
         int i;
         for(i = 0; i < len; i++) {
                 am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, data[i]);
         }
 
         return 0;
-}
 
-//static int write_data_dma(struct am335x_ctrl *ctrl, const short *data, size_t len)
-//{
-//        int ret;
-//        am335x_set_lcddma_fbx_base_addr(ctrl->reg_base_addr, FB0, data);
-//        am335x_set_lcddma_fbx_ceil_addr(ctrl->reg_base_addr, FB0, data + len);
-//        am335x_set_lidd_dma_en(ctrl->reg_base_addr, 1);
-//        ret = wait_dma_timeout(ctrl);
-//        am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
-//        return ret;
-//}
+#       endif
+}
 
 static ssize_t read(struct controller *ctrl, short *buf, size_t len)
 {
