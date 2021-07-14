@@ -51,7 +51,7 @@ static ssize_t pl_parallel_read(struct file *file, char __user *data,
                                 size_t size, loff_t *offset)
 {
         int ret;
-        short *read_buffer = kzalloc(size, GFP_KERNEL);
+        short *read_buffer = kzalloc(size, GFP_KERNEL | GFP_DMA32);
         if(!read_buffer)
                 return -ENOMEM;
 
@@ -324,6 +324,6 @@ module_init(pl_parallel_init);
 module_exit(pl_parallel_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_VERSION("v1.2.2");
+MODULE_VERSION("v1.2.3");
 MODULE_DESCRIPTION("Parallel driver for PL Germany devices.");
 MODULE_AUTHOR("Lars Görner <lars.goerner@plasticlogic.com>");
