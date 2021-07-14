@@ -51,7 +51,7 @@ static ssize_t pl_parallel_read(struct file *file, char __user *data,
                                 size_t size, loff_t *offset)
 {
         int ret;
-        short *read_buffer = kzalloc(size, GFP_KERNEL | GFP_DMA32);
+        unsigned short *read_buffer = kzalloc(size, GFP_KERNEL | GFP_DMA32);
         if(!read_buffer)
                 return -ENOMEM;
 
@@ -74,7 +74,7 @@ end_read:
 static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                                  size_t size, loff_t *offset)
 {
-        short *data_buf;
+        unsigned short *data_buf;
         int ret;
 
         if(size < 2)

@@ -760,7 +760,7 @@ static int write_data_no_hrdy(struct am335x_ctrl *ctrl, const short *data, size_
 #       endif
 }
 
-static ssize_t read(struct controller *ctrl, short *buf, size_t len)
+static ssize_t read(struct controller *ctrl, unsigned short *buf, size_t len)
 {
         int i, ret;
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
@@ -783,7 +783,7 @@ static ssize_t read(struct controller *ctrl, short *buf, size_t len)
         return len;
 }
 
-static ssize_t write(struct controller *ctrl, const short *buf, size_t len)
+static ssize_t write(struct controller *ctrl, const unsigned short *buf, size_t len)
 {
         int ret;
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
@@ -793,7 +793,7 @@ static ssize_t write(struct controller *ctrl, const short *buf, size_t len)
                 return -EIO;
         }
 
-        if(buf[0] != 0xFFFF)
+        if(buf[0] != __UINT16_MAX__)
                 write_addr(c, buf[0]);
         
         if(len > 1) {
