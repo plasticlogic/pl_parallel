@@ -19,7 +19,7 @@
 
 #define TIMING_DEVICE_NAME      "timings"
 #define POLARITY_DEVICE_NAME    "polarities"
-#define TIMEOUT_MSECS           1000
+#define TIMEOUT_MSECS           10000
 
 #define timing_dev_to_ctrl(tdev) container_of(tdev, struct am335x_ctrl, timing_dev)
 #define pol_dev_to_ctrl(pdev) container_of(pdev, struct am335x_ctrl, pol_dev)
@@ -525,12 +525,12 @@ static void am335x_polarities_sysfs_unregister(struct am335x_ctrl *ctrl)
 ////////////////////////////////////////////////////////////////////////////////
 // Controller functions
 
-static const unsigned int init_hw_clk_freq = 300000000;
+static const unsigned int init_hw_clk_freq = 200000000;
 static const int init_clk_div = 1;
 
 static struct am335x_lidd_timings init_timings = {
         .w_setup = 1,
-        .w_strobe = 7,
+        .w_strobe = 10,
         .w_hold = 1,
         .r_setup = 7,
         .r_strobe = 15,
@@ -556,11 +556,30 @@ static inline int wait_hrdy_timeout(struct am335x_ctrl *ctrl) {
 }
 
 static inline int wait_dma_timeout(struct am335x_ctrl *ctrl) {
-        unsigned long end_jiffies = jiffies + msecs_to_jiffies(1000);
+        unsigned long end_jiffies = jiffies + msecs_to_jiffies(3000);
         do {
-                if(am335x_get_lcddma_fbx_done_raw_irq(ctrl->reg_base_addr))
+                if(am335x_get_lcddma_done_raw_irq(ctrl->reg_base_addr)) {
                         return 0;
+                }
         } while(jiffies < end_jiffies);
+
+        pr_info("%s: RAW IRQ: 0x%08X\n", THIS_MODULE->name, 
+                readl(ctrl->reg_base_addr + AM335X_LCDC_IRQSTATUS_RAW_OFFS));
+        pr_info("%s: IRQSTATUS: 0x%08X\n", THIS_MODULE->name, 
+                readl(ctrl->reg_base_addr + AM335X_LCDC_IRQSTATUS_OFFS));
+        pr_info("%s: CLOCK CTRL: 0x%08X\n", THIS_MODULE->name, 
+                readl(ctrl->reg_base_addr + AM335X_LCDC_CLKC_ENABLE_OFFS));
+        pr_info("%s: LCDC CTRL: 0x%08X\n", THIS_MODULE->name, 
+                readl(ctrl->reg_base_addr + AM335X_LCDC_CTRL_OFFS));
+        pr_info("%s: LIDD CTRL: 0x%08X\n", THIS_MODULE->name, 
+                readl(ctrl->reg_base_addr + AM335X_LCDC_LIDD_CTRL_OFFS));
+        pr_info("%s: DMA CTRL: 0x%08X\n", THIS_MODULE->name, 
+                readl(ctrl->reg_base_addr + AM335X_LCDC_LCDDMA_CTRL_OFFS));
+        pr_info("%s: DMA BASE: 0x%08X\n", THIS_MODULE->name, 
+                readl(ctrl->reg_base_addr + AM335X_LCDC_LCDDMA_FB0_BASE_OFFS));
+        pr_info("%s: DMA CEIL: 0x%08X\n", THIS_MODULE->name, 
+                readl(ctrl->reg_base_addr + AM335X_LCDC_LCDDMA_FB0_CEIL_OFFS));
+
         return -ETIME;
 }
 
@@ -645,16 +664,20 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
         am335x_lcdc_set_ctrl_mode(am_ctrl->reg_base_addr, LIDD_MODE);
         
         // set lidd mode
-        am335x_set_lidd_mode(am_ctrl->reg_base_addr, SYNC_MPU80);
+        am335x_set_lidd_mode(am_ctrl->reg_base_addr, ASYNC_MPU80);
         
         // set timings
         am335x_set_lidd_timings(am_ctrl->reg_base_addr, LIDD_CS0, &init_timings);
         am335x_set_lidd_timings(am_ctrl->reg_base_addr, LIDD_CS1, &init_timings);
 
         // set lcddma config
+        am335x_set_dma_cs0_cs1(am_ctrl->reg_base_addr, LIDD_CS0);
         am335x_set_lcddma_fifo_threshold(am_ctrl->reg_base_addr, FIFO_TH_16);
         am335x_set_lcddma_burst_size(am_ctrl->reg_base_addr, BURST_SIZE_16);
         am335x_set_lcddma_frame_mode(am_ctrl->reg_base_addr, ONE_FRAME);
+
+        // enable LIDD eof0 irq
+        am335x_set_lcddma_eof0_en_set(am_ctrl->reg_base_addr);
 
         return 0;
 
@@ -689,6 +712,7 @@ static void destroy(struct controller *ctrl, struct platform_device *pdev,
                                 resource_size(am_ctrl->hw_res));
         am335x_timings_sysfs_unregister(am_ctrl);
         am335x_polarities_sysfs_unregister(am_ctrl);
+        am335x_set_lcddma_eof0_en_clr(am_ctrl->reg_base_addr);
         kfree(am_ctrl);
 }
 
@@ -704,7 +728,7 @@ static int write_data(struct am335x_ctrl *ctrl, const short *data, size_t len)
                 am335x_set_lidd_data(ctrl->reg_base_addr, LIDD_CS0, data[i]);
                 ret = wait_hrdy_timeout(ctrl);
                 if(ret) {
-                        pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
+                        pr_warn("%s: Write I8080 timeout!\n", THIS_MODULE->name);
                         return -EIO;
                 }
         }
@@ -717,8 +741,8 @@ static int write_data_no_hrdy(struct am335x_ctrl *ctrl, const short *data, size_
 #       ifdef BURST_DMA
 
         int ret;
-        am335x_set_lcddma_fbx_base_addr(ctrl->reg_base_addr, FB0, data);
-        am335x_set_lcddma_fbx_ceil_addr(ctrl->reg_base_addr, FB0, data + len);
+        am335x_set_lcddma_fb0_base_addr(ctrl->reg_base_addr, data);
+        am335x_set_lcddma_fb0_ceil_addr(ctrl->reg_base_addr, &data[len - 1]);
         am335x_set_lidd_dma_en(ctrl->reg_base_addr, 1);
         ret = wait_dma_timeout(ctrl);
         am335x_set_lidd_dma_en(ctrl->reg_base_addr, 0);
@@ -768,7 +792,10 @@ static ssize_t write(struct controller *ctrl, const short *buf, size_t len)
                 pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);
                 return -EIO;
         }
-        write_addr(c, buf[0]);
+
+        if(buf[0] != 0xFFFF)
+                write_addr(c, buf[0]);
+        
         if(len > 1) {
                 ret = wait_hrdy_timeout(c);
                 if(ret) {
