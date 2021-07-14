@@ -884,10 +884,10 @@ static inline void am335x_set_lcddma_byte_swap_en(void __iomem *base_addr,
 static inline void am335x_set_lcddma_burst_size(void __iomem *base_addr,
                                                 enum dma_burst_size bs)
 {
-        union am335x_lcdc_lcddma_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LCDDMA_CTRL_OFFS);
-        reg.burst_size = bs;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LCDDMA_CTRL_OFFS);
+        uint32_t reg = readl(base_addr + AM335X_LCDC_LCDDMA_CTRL_OFFS);
+        reg &= ~(3 << 4);
+        reg |= (bs << 4);
+        writel(reg, base_addr + AM335X_LCDC_LCDDMA_CTRL_OFFS);
 }
 
 static inline void am335x_set_lcddma_fifo_threshold(void __iomem *base_addr,
@@ -908,50 +908,30 @@ static inline void am335x_set_lcddma_master_prio(void __iomem *base_addr,
         writel(reg.reg_val, base_addr + AM335X_LCDC_LCDDMA_CTRL_OFFS);
 }
 
-#define get_lcddma_fbx_base_offs(fb)            \
-        (fb == FB0 ?                            \
-        AM335X_LCDC_LCDDMA_FB0_BASE_OFFS :      \
-        AM335X_LCDC_LCDDMA_FB1_BASE_OFFS)
 
-#define get_lcddma_fbx_ceil_offs(fb)            \
-        (fb == FB0 ?                            \
-        AM335X_LCDC_LCDDMA_FB0_CEIL_OFFS :      \
-        AM335X_LCDC_LCDDMA_FB1_CEIL_OFFS)
 
-union am335x_lcdc_lcddma_fbx_base_reg {
-        struct {
-                uint32_t reserved : 2;
-                uint32_t fb_base : 30;
-        };
-        uint32_t reg_val;
-};
-
-static inline void am335x_set_lcddma_fbx_base_addr(void __iomem *base_addr,
-                                                   enum dma_framebuffer fb,
+static inline void am335x_set_lcddma_fb0_base_addr(void __iomem *base_addr,
                                                    const void *base)
 {
-        union am335x_lcdc_lcddma_fbx_base_reg reg;
-        reg.reg_val = readl(base_addr + get_lcddma_fbx_base_offs(fb));
-        reg.fb_base = (uintptr_t)base >> 2;
-        writel(reg.reg_val, base_addr + get_lcddma_fbx_base_offs(fb));
+        writel((uintptr_t)base, base_addr +  AM335X_LCDC_LCDDMA_FB0_BASE_OFFS);
 }
 
-union am335x_lcdc_lcddma_fbx_ceiling_reg {
-        struct {
-                uint32_t reserved : 2;
-                uint32_t fb_ceil : 30;
-        };
-        uint32_t reg_val;
-};
+static inline void am335x_set_lcddma_fb1_base_addr(void __iomem *base_addr,
+                                                   const void *base)
+{
+        writel((uintptr_t)base, base_addr +  AM335X_LCDC_LCDDMA_FB1_BASE_OFFS);
+}
 
-static inline void am335x_set_lcddma_fbx_ceil_addr(void __iomem *base_addr,
-                                                   enum dma_framebuffer fb,
+static inline void am335x_set_lcddma_fb0_ceil_addr(void __iomem *base_addr,
                                                    const void *ceil)
 {
-        union am335x_lcdc_lcddma_fbx_ceiling_reg reg;
-        reg.reg_val = readl(base_addr + get_lcddma_fbx_base_offs(fb));
-        reg.fb_ceil = (uintptr_t)ceil >> 2;
-        writel(reg.reg_val, base_addr + get_lcddma_fbx_base_offs(fb));
+        writel((uintptr_t)ceil, base_addr + AM335X_LCDC_LCDDMA_FB0_CEIL_OFFS);
+}
+
+static inline void am335x_set_lcddma_fb1_ceil_addr(void __iomem *base_addr,
+                                                   const void *ceil)
+{
+        writel((uintptr_t)ceil, base_addr + AM335X_LCDC_LCDDMA_FB1_CEIL_OFFS);
 }
 
 union am335x_lcddma_irqstatus_raw_reg {
@@ -971,7 +951,7 @@ union am335x_lcddma_irqstatus_raw_reg {
         uint32_t reg_val;
 };
 
-static inline int am335x_get_lcddma_fbx_done_raw_irq(void __iomem *base_addr)
+static inline int am335x_get_lcddma_done_raw_irq(void __iomem *base_addr)
 {
         union am335x_lcddma_irqstatus_raw_reg reg;
         reg.reg_val = readl(base_addr + AM335X_LCDC_IRQSTATUS_RAW_OFFS);
