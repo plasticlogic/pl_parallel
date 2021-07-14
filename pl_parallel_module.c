@@ -324,6 +324,6 @@ module_init(pl_parallel_init);
 module_exit(pl_parallel_exit);
 
 MODULE_LICENSE("GPL");
-MODULE_VERSION("v1.2.1");
+MODULE_VERSION("v1.2.2");
 MODULE_DESCRIPTION("Parallel driver for PL Germany devices.");
 MODULE_AUTHOR("Lars Görner <lars.goerner@plasticlogic.com>");
