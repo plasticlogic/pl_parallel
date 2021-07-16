@@ -135,7 +135,7 @@ static inline int am335x_lcdc_get_clkdiv(void __iomem *base_addr)
 
 enum standby_mode {
         FORCE_STANDBY = 0,
-        MO_STANDBY = 1,
+        NO_STANDBY = 1,
         SMART_STANDBY = 2,
 };
 
