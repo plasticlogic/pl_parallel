@@ -94,10 +94,13 @@ static ssize_t pl_parallel_write(struct file *file, const char __user *data,
         }
 
         ret = ctrl->write(ctrl, data_buf, size / 2);
+        if(ret < 0)
+                goto write_data_failed;
         
         kfree(data_buf);
         return size;
 
+write_data_failed:
 copy_user_data_fail:
         kfree(data_buf);
 alloc_buf_mem_fail:
