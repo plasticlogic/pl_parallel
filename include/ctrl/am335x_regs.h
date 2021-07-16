@@ -17,6 +17,14 @@
 #include <asm-generic/io.h>
 #include <linux/ioport.h>
 
+#define SET_BIT(val, n) ((val) |= 1U << (n))
+#define CLEAR_BIT(val, n) ((val) &= ~(1U << (n)))
+
+#define WRITE_REG_BIT(reg, b, n) \
+        ((b) ? SET_BIT((reg), (n)) : CLEAR_BIT((reg), (n)))
+
+#define READ_REG_BIT(reg, n) (((reg) >> n) & 1U)
+
 #define AM335X_LCDC_PID_OFFS                    0x00U
 #define AM335X_LCDC_CTRL_OFFS                   0x04U
 #define AM335X_LCDC_LIDD_CTRL_OFFS              0x0CU
@@ -428,173 +436,150 @@ enum lidd_device {
         LIDD_CS1 = 1,
 };
 
-union am335x_lcdc_lidd_ctrl_reg {
-        struct {
-                uint32_t lidd_mode_sel : 3;
-                uint32_t ale_pol : 1;
-                uint32_t rs_en_pol : 1;
-                uint32_t ws_dir_pol : 1;
-                uint32_t cs0_e0_pol : 1;
-                uint32_t cs1_e1_pol : 1;
-                uint32_t lidd_dma_en : 1;
-                uint32_t dma_cs0_cs1 : 1;
-                uint32_t reserved : 22;
-        };
-        uint32_t reg_val;
-};
+#define AM335X_LIDD_MODE_SEL_OFFS       0
+#define AM335X_ALEPOL_OFFS              3
+#define AM335X_RS_EN_POL_OFFS           4
+#define AM335X_WS_DIR_POL_OFFS          5
+#define AM335X_CS0_E0_POL_OFFS          6
+#define AM335X_CS1_E1_POL_OFFS          7
+#define AM335X_LIDD_DMA_EN_OFFS         8
+#define AM335X_DMA_CS0_CS1_OFFS         9
 
 static inline void am335x_set_lidd_mode(void __iomem *base_addr, 
                                         enum lidd_mode mode)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.lidd_mode_sel = mode;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        reg &= ~(3 << AM335X_LIDD_MODE_SEL_OFFS);
+        reg |= (mode << AM335X_LIDD_MODE_SEL_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline enum lidd_mode am335x_get_lidd_mode(void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.lidd_mode_sel;
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        return (reg & 3U);
 }
 
 static inline void am335x_set_ale_pol(void __iomem *base_addr, 
                                       enum polarity pol)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.ale_pol = pol;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        WRITE_REG_BIT(reg, pol, AM335X_ALEPOL_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline enum polarity am335x_get_ale_pol(void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.ale_pol;
+        int reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        return READ_REG_BIT(reg, AM335X_ALEPOL_OFFS);
 }
 
 static inline void am335x_set_rs_en_pol(void __iomem *base_addr, 
                                         enum polarity pol)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.rs_en_pol = pol;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        int reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        WRITE_REG_BIT(reg, pol, AM335X_RS_EN_POL_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline enum polarity am335x_get_rs_en_pol(void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.rs_en_pol;
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        return READ_REG_BIT(reg, AM335X_RS_EN_POL_OFFS);
 }
 
 static inline void am335x_set_ws_dir_pol(void __iomem *base_addr, 
                                          enum polarity pol)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.ws_dir_pol = pol;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        WRITE_REG_BIT(reg, pol, AM335X_WS_DIR_POL_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline enum polarity am335x_get_ws_dir_pol(void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.ws_dir_pol;
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        return READ_REG_BIT(reg, AM335X_WS_DIR_POL_OFFS);
 }
 
 static inline void am335x_set_cs0_e0_pol(void __iomem *base_addr, 
                                          enum polarity pol)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.cs0_e0_pol = pol;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        WRITE_REG_BIT(reg, pol, AM335X_CS0_E0_POL_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline enum polarity am335x_get_cs0_e0_pol(void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.cs0_e0_pol;
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        return READ_REG_BIT(reg, AM335X_CS0_E0_POL_OFFS);
 }
 
 static inline void am335x_set_cs1_e1_pol(void __iomem *base_addr, 
                                          enum polarity pol)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.cs1_e1_pol = pol;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        WRITE_REG_BIT(reg, pol, AM335X_CS1_E1_POL_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline enum polarity am335x_get_cs1_e1_pol(void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.cs1_e1_pol;
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        return READ_REG_BIT(reg, AM335X_CS1_E1_POL_OFFS);
 }
 
 static inline void am335x_set_lidd_dma_en(void __iomem *base_addr, 
-                                          unsigned int enable)
+                                          unsigned enable)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.lidd_dma_en = enable;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        WRITE_REG_BIT(reg, enable, AM335X_LIDD_DMA_EN_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline int am335x_get_lidd_dma_en(void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.lidd_dma_en;
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        return READ_REG_BIT(reg, AM335X_LIDD_DMA_EN_OFFS);
 }
 
 static inline void am335x_set_dma_cs0_cs1(void __iomem *base_addr, 
                                           enum lidd_device ld)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.dma_cs0_cs1 = ld;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        WRITE_REG_BIT(reg, ld, AM335X_DMA_CS0_CS1_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline enum lidd_device am335x_get_dma_cs0_cs1(void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        return reg.dma_cs0_cs1;
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        return READ_REG_BIT(reg, AM335X_DMA_CS0_CS1_OFFS);
 }
 
 static inline void am335x_set_lidd_pols(void __iomem *base_addr, 
                                         struct am335x_lidd_sig_pol *pols)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        reg.ale_pol = pols->ale_pol;
-        reg.cs0_e0_pol = pols->cs0_e0_pol;
-        reg.cs1_e1_pol = pols->cs1_e1_pol;
-        reg.rs_en_pol = pols->rs_en_pol;
-        reg.ws_dir_pol = pols->ws_dir_pol;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        WRITE_REG_BIT(reg, pols->ale_pol, AM335X_ALEPOL_OFFS);
+        WRITE_REG_BIT(reg, pols->cs0_e0_pol, AM335X_CS0_E0_POL_OFFS);
+        WRITE_REG_BIT(reg, pols->cs1_e1_pol, AM335X_CS1_E1_POL_OFFS);
+        WRITE_REG_BIT(reg, pols->rs_en_pol, AM335X_RS_EN_POL_OFFS);
+        WRITE_REG_BIT(reg, pols->ws_dir_pol, AM335X_WS_DIR_POL_OFFS);
+        writel(reg, base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
 }
 
 static inline struct am335x_lidd_sig_pol am335x_get_lidd_pols(
                                                 void __iomem *base_addr)
 {
-        union am335x_lcdc_lidd_ctrl_reg reg;
         struct am335x_lidd_sig_pol pols;
-        reg.reg_val = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
-        pols.ale_pol = reg.ale_pol;
-        pols.cs0_e0_pol = reg.cs0_e0_pol;
-        pols.cs1_e1_pol = reg.cs1_e1_pol;
-        pols.rs_en_pol = reg.rs_en_pol;
-        pols.ws_dir_pol = reg.ws_dir_pol;
+        unsigned reg = readl(base_addr + AM335X_LCDC_LIDD_CTRL_OFFS);
+        pols.ale_pol = READ_REG_BIT(reg, AM335X_ALEPOL_OFFS);
+        pols.cs0_e0_pol = READ_REG_BIT(reg, AM335X_CS0_E0_POL_OFFS);
+        pols.cs1_e1_pol = READ_REG_BIT(reg, AM335X_CS1_E1_POL_OFFS);
+        pols.rs_en_pol = READ_REG_BIT(reg, AM335X_RS_EN_POL_OFFS);
+        pols.ws_dir_pol = READ_REG_BIT(reg, AM335X_WS_DIR_POL_OFFS);
         return pols;
 }
 
