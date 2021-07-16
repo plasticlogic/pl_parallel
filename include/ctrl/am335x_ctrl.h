@@ -25,7 +25,6 @@
 #include <ctrl/controller.h>
 
 #define AM335X_TCON_CLK_IDENTIFIER      "l4_per_cm:clk:0004:0"
-//#define BURST_DMA
 
 struct am335x_ctrl {
         struct controller ctrl;
