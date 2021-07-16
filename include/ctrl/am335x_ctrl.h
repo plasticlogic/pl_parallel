@@ -34,6 +34,7 @@ struct am335x_ctrl {
         struct clk *hw_clk;
         struct gpio_desc *hrdy_gpio;
         void __iomem *reg_base_addr;
+        int irq_num;
 };
 #define to_am335x_ctrl(x) container_of(x, struct am335x_ctrl, ctrl)
 
