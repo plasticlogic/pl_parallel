@@ -982,78 +982,62 @@ static inline int am335x_get_lcddma_fbx_eof_raw_irq(void __iomem *base_addr,
                 return reg.eof1_raw_set;
 }
 
-union am335x_lcddma_irqstatus_reg {
-        struct {
-                uint32_t done_clr : 1;
-                uint32_t recurrent_raster_done_clr : 1;
-                uint32_t sync_clr : 1;
-                uint32_t acb_clr : 1;
-                uint32_t reserved1 : 1;
-                uint32_t fuf_clr : 1;
-                uint32_t pl_clr : 1;
-                uint32_t reserved2 : 1; 
-                uint32_t eof0_clr : 1;
-                uint32_t eof1_clr : 1;
-                uint32_t reserved3 : 22;
-        };
-        uint32_t reg_val;
-};
+#define AM335X_LCDDMA_IRQ_DONE_CLR_OFFS                         0
+#define AM335X_LCDDMA_IRQ_RECURRENT_RASTER_DONE_CLR_OFFS        1
+#define AM335X_LCDDMA_IRQ_SYNC_CLR_OFFS                         2
+#define AM335X_LCDDMA_IRQ_ACB_CLR_OFFS                          3
+#define AM335X_LCDDMA_IRQ_FUF_CLR_OFFS                          5
+#define AM335X_LCDDMA_IRQ_PL_CLR_OFFS                           6
+#define AM335X_LCDDMA_IRQ_EOF0_CLR_OFFS                         8
+#define AM335X_LCDDMA_IRQ_EOF1_CLR_OFFS                         9
 
-static inline void am335x_set_lcddma_done_clr(void __iomem *base_addr)
+static inline int am335x_get_lcddma_done_clr(void __iomem *base_addr)
 {
-        union am335x_lcddma_irqstatus_reg reg;
-        reg.done_clr = 1;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        return READ_REG_BIT(reg, AM335X_LCDDMA_IRQ_DONE_CLR_OFFS);
 }
 
-static inline void am335x_set_lcddma_recurrent_raster_done_clr(
+static inline int am335x_get_lcddma_recurrent_raster_done_clr(
                                                         void __iomem *base_addr)
 {
-        union am335x_lcddma_irqstatus_reg reg;
-        reg.recurrent_raster_done_clr = 1;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        return READ_REG_BIT(reg, AM335X_LCDDMA_IRQ_RECURRENT_RASTER_DONE_CLR_OFFS);
 }
 
-static inline void am335x_set_lcddma_sync_clr(void __iomem *base_addr)
+static inline int am335x_get_lcddma_sync_clr(void __iomem *base_addr)
 {
-        union am335x_lcddma_irqstatus_reg reg;
-        reg.sync_clr = 1;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        return READ_REG_BIT(reg, AM335X_LCDDMA_IRQ_SYNC_CLR_OFFS);
 }
 
-static inline void am335x_set_lcddma_acb_clr(void __iomem *base_addr)
+static inline int am335x_get_lcddma_acb_clr(void __iomem *base_addr)
 {
-        union am335x_lcddma_irqstatus_reg reg;
-        reg.acb_clr = 1;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        return READ_REG_BIT(reg, AM335X_LCDDMA_IRQ_ACB_CLR_OFFS);
 }
 
-static inline void am335x_set_lcddma_fuf_clr(void __iomem *base_addr)
+static inline int am335x_get_lcddma_fuf_clr(void __iomem *base_addr)
 {
-        union am335x_lcddma_irqstatus_reg reg;
-        reg.fuf_clr = 1;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        return READ_REG_BIT(reg, AM335X_LCDDMA_IRQ_FUF_CLR_OFFS);
 }
 
-static inline void am335x_set_lcddma_pl_clr(void __iomem *base_addr)
+static inline int am335x_get_lcddma_pl_clr(void __iomem *base_addr)
 {
-        union am335x_lcddma_irqstatus_reg reg;
-        reg.pl_clr = 1;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        return READ_REG_BIT(reg, AM335X_LCDDMA_IRQ_PL_CLR_OFFS);
 }
 
-static inline void am335x_set_lcddma_eof0_clr(void __iomem *base_addr)
+static inline int am335x_get_lcddma_eof0_clr(void __iomem *base_addr)
 {
-        union am335x_lcddma_irqstatus_reg reg;
-        reg.eof0_clr = 1;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        return READ_REG_BIT(reg, AM335X_LCDDMA_IRQ_EOF0_CLR_OFFS);
 }
 
-static inline void am335x_set_lcddma_eof1_clr(void __iomem *base_addr)
+static inline int am335x_get_lcddma_eof1_clr(void __iomem *base_addr)
 {
-        union am335x_lcddma_irqstatus_reg reg;
-        reg.eof1_clr = 1;
-        writel(reg.reg_val, base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        unsigned reg = readl(base_addr + AM335X_LCDC_IRQSTATUS_OFFS);
+        return READ_REG_BIT(reg, AM335X_LCDDMA_IRQ_EOF1_CLR_OFFS);
 }
 
 union am335x_lcddma_irqenable_set_reg {
