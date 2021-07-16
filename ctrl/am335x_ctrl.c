@@ -658,6 +658,10 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
         // set clock divisor
         am335x_lcdc_set_clkdiv(am_ctrl->reg_base_addr, init_clk_div);
 
+        // sys config
+        am335x_lcdc_set_standby_mode(am_ctrl->reg_base_addr, NO_STANDBY);
+        am335x_lcdc_set_idle_mode(am_ctrl->reg_base_addr, NO_IDLE);
+
         // set signal polarities
         am335x_set_lidd_pols(am_ctrl->reg_base_addr, &init_sig_pols);
 
@@ -671,13 +675,16 @@ static int init(struct controller *ctrl, struct platform_device *pdev,
         am335x_set_lidd_timings(am_ctrl->reg_base_addr, LIDD_CS1, &init_timings);
 
         // set lcddma config
+        am335x_set_lidd_dma_en(am_ctrl->reg_base_addr, 0);
         am335x_set_dma_cs0_cs1(am_ctrl->reg_base_addr, LIDD_CS0);
-        am335x_set_lcddma_fifo_threshold(am_ctrl->reg_base_addr, FIFO_TH_16);
-        am335x_set_lcddma_burst_size(am_ctrl->reg_base_addr, BURST_SIZE_16);
+        am335x_set_lcddma_master_prio(am_ctrl->reg_base_addr, HIGH_PRIO);
+        am335x_set_lcddma_fifo_threshold(am_ctrl->reg_base_addr, FIFO_TH_8);
+        am335x_set_lcddma_burst_size(am_ctrl->reg_base_addr, BURST_SIZE_1);
         am335x_set_lcddma_frame_mode(am_ctrl->reg_base_addr, ONE_FRAME);
 
-        // enable LIDD eof0 irq
+        // enable LCDDMA IRQ's
         am335x_set_lcddma_eof0_en_set(am_ctrl->reg_base_addr);
+        am335x_set_lcddma_done_en_set(am_ctrl->reg_base_addr);
 
         return 0;
 
