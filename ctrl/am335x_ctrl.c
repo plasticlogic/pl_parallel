@@ -562,24 +562,7 @@ static inline int wait_dma_timeout(struct am335x_ctrl *ctrl) {
                         return 0;
                 }
         } while(jiffies < end_jiffies);
-
-        pr_info("%s: RAW IRQ: 0x%08X\n", THIS_MODULE->name, 
-                readl(ctrl->reg_base_addr + AM335X_LCDC_IRQSTATUS_RAW_OFFS));
-        pr_info("%s: IRQSTATUS: 0x%08X\n", THIS_MODULE->name, 
-                readl(ctrl->reg_base_addr + AM335X_LCDC_IRQSTATUS_OFFS));
-        pr_info("%s: CLOCK CTRL: 0x%08X\n", THIS_MODULE->name, 
-                readl(ctrl->reg_base_addr + AM335X_LCDC_CLKC_ENABLE_OFFS));
-        pr_info("%s: LCDC CTRL: 0x%08X\n", THIS_MODULE->name, 
-                readl(ctrl->reg_base_addr + AM335X_LCDC_CTRL_OFFS));
-        pr_info("%s: LIDD CTRL: 0x%08X\n", THIS_MODULE->name, 
-                readl(ctrl->reg_base_addr + AM335X_LCDC_LIDD_CTRL_OFFS));
-        pr_info("%s: DMA CTRL: 0x%08X\n", THIS_MODULE->name, 
-                readl(ctrl->reg_base_addr + AM335X_LCDC_LCDDMA_CTRL_OFFS));
-        pr_info("%s: DMA BASE: 0x%08X\n", THIS_MODULE->name, 
-                readl(ctrl->reg_base_addr + AM335X_LCDC_LCDDMA_FB0_BASE_OFFS));
-        pr_info("%s: DMA CEIL: 0x%08X\n", THIS_MODULE->name, 
-                readl(ctrl->reg_base_addr + AM335X_LCDC_LCDDMA_FB0_CEIL_OFFS));
-
+        
         return -ETIME;
 }
 
