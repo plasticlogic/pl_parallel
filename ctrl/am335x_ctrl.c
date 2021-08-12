@@ -755,6 +755,10 @@ static ssize_t read(struct controller *ctrl, unsigned short *buf, size_t len)
         int i, ret;
         struct am335x_ctrl *c = to_am335x_ctrl(ctrl);
 
+        /*
+         * For whatever reason the parallel bus reads the first element twice.
+         * To compensate this we do a dummy read operation.
+         */
         ret = wait_hrdy_timeout(c);
         if(ret) {
                 pr_warn("%s: Read I8080 timeout!\n", THIS_MODULE->name);

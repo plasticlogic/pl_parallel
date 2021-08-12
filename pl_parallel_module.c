@@ -50,61 +50,76 @@ static int pl_parallel_release(struct inode *inode, struct file *file)
 static ssize_t pl_parallel_read(struct file *file, char __user *data,
                                 size_t size, loff_t *offset)
 {
-        int ret;
-        unsigned short *read_buffer = kzalloc(size, GFP_KERNEL | GFP_DMA32);
+        int ret = 0;
+        unsigned long c, cnt = 0;
+        unsigned char *read_buffer, *src, *dst;
+        
+        read_buffer = kmalloc(size, GFP_KERNEL);
         if(!read_buffer)
                 return -ENOMEM;
 
-        ret = ctrl->read(ctrl, read_buffer, size / 2);
-        if(ret < 0) {
-                goto end_read;
+        ret = ctrl->read(ctrl, (unsigned short *)read_buffer, size / 2);
+        if(ret < 0)
+                goto err;
+
+        src = read_buffer;
+        dst = data;
+
+        while(size) {
+                c = (size > PAGE_SIZE) ? PAGE_SIZE : size;
+
+                if(copy_to_user(dst, src, c)) {
+                        ret = -EFAULT;
+                        break;
+                }
+
+                src += c;
+                dst += c;
+                cnt += c;       
+                size -= c;
         }
 
-        ret = copy_to_user(data, read_buffer, size);
-        if(ret)
-                return -EIO;
-
-        ret = size;
-
-end_read:
+err:
         kfree(read_buffer);
-        return ret;
+        return (ret) ? ret : cnt;
 }
 
 static ssize_t pl_parallel_write(struct file *file, const char __user *data,
                                  size_t size, loff_t *offset)
 {
-        unsigned short *data_buf;
-        int ret;
+        unsigned char *data_buf, *dst;
+        const unsigned char *src;
+        unsigned long c, cnt = 0;
+        int ret = 0;
 
         if(size < 2)
                 return -EINVAL;
 
-        data_buf = kzalloc(size, GFP_DMA);
-        if(!data_buf) {
-                pr_err("%s: Allocate buffer failed.\n", THIS_MODULE->name);
-                ret = -ENOMEM;
-                goto alloc_buf_mem_fail;
+        data_buf = kmalloc(size, GFP_KERNEL);
+        if(!data_buf)
+                return -ENOMEM;
+
+        src = data;
+        dst = data_buf;
+
+        while(size) {
+                c = (size > PAGE_SIZE) ? PAGE_SIZE : size;
+                if(copy_from_user(dst, src, c)) {
+                        ret = -EFAULT;
+                        goto err;
+                }
+
+                dst += c;
+                src += c;
+                cnt += c;
+                size -= c;
         }
 
-        ret = copy_from_user(data_buf, data, size);
-        if(ret) {
-                pr_err("%s: Copy data from user space failed.\n", THIS_MODULE->name);
-                goto copy_user_data_fail;
-        }
-
-        ret = ctrl->write(ctrl, data_buf, size / 2);
-        if(ret < 0)
-                goto write_data_failed;
+        ret = ctrl->write(ctrl, (unsigned short *)data_buf, cnt / 2);
         
+err:
         kfree(data_buf);
-        return size;
-
-write_data_failed:
-copy_user_data_fail:
-        kfree(data_buf);
-alloc_buf_mem_fail:
-        return ret;
+        return (ret) ? ret : cnt;
 }
 
 static struct file_operations pl_parallel_fops = {
