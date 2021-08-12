@@ -1,4 +1,4 @@
-use_dma = y
+use_dma = n
 
 obj-m := pl_parallel.o
 pl_parallel-objs += pl_parallel_module.o
